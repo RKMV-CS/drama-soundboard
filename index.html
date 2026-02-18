@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Soundboard</title>
+
+<style>
+:root {
+    --bg: #000;
+    --panel: #050505;
+    --border: #1a1a1a;
+    --text: #f8fafc;
+    --muted: #9ca3af;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: "Segoe UI", system-ui;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: 1.2fr 2fr 1.2fr;
+}
+
+/* PANELS */
+.panel {
+    padding: 14px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.panel:last-child { border-right: none; }
+
+h2 {
+    text-align: center;
+    letter-spacing: 4px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+/* TRACKS */
+.track {
+    padding: 10px;
+    margin-bottom: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.track-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.player-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #111;
+    border: 1px solid white;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-btn:hover {
+    background: white;
+    color: black;
+}
+
+.track:hover { border-color: white; }
+
+.track.active {
+    background: #111;
+    box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+
+/* KEYBIND INPUT */
+.key-input {
+    width: 35px;
+    height: 28px;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    text-align: center;
+    font-size: 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.key-input:focus {
+    border-color: white;
+    outline: none;
+    background: #111;
+}
+
+/* CENTER */
+.center {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+#script {
+    flex: 1;
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 14px;
+    resize: none;
+    font-size: 15px;
+}
+
+#script:focus {
+    outline: 1px solid white;
+    border-color: white;
+}
+
+/* CONTROLS */
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+label {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* NEON SLIDERS */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(
+        to right,
+        white 0%,
+        white var(--val, 50%),
+        #333 var(--val, 50%),
+        #333 100%
+    );
+    border-radius: 10px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 0 10px rgba(255,255,255,.7);
+    cursor: pointer;
+}
+
+/* BUTTONS */
+button {
+    background: #111;
+    color: white;
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover { border-color: white; }
+
+.stop { border-color: white; }
+
+/* MODE TOGGLE */
+.mode-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* VOLUME CONTROLS */
+.vol-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vol-percent {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.vol-percent.show {
+    display: flex;
+}
+
+.vol-percent input[type="number"] {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    width: 50px;
+    text-align: center;
+}
+
+.vol-percent input[type="number"]:focus {
+    outline: none;
+    border-color: white;
+}
+
+/* DRAG AND DROP */
+.drop-zone {
+    padding: 12px;
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.drop-zone.drag-over {
+    border-color: white;
+    background: rgba(255,255,255,0.05);
+}
+
+.shortcut-hint {
+    grid-column: span 3;
+    text-align: center;
+    font-size: 10px;
+    color: #444;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+<h2>EFFECTS</h2>
+<div id="fileDropEffect" class="drop-zone" ondrop="handleDrop(event, 'effects')" ondragover="event.preventDefault()" ondragleave="event.target.classList.remove('drag-over')" ondragenter="event.target.classList.add('drag-over')">
+<p style="text-align: center; color: var(--muted); font-size: 12px; margin: 10px 0;">Drag & Drop or <label style="color: white; cursor: pointer; text-decoration: underline;">Click to Upload<input type="file" id="effectUpload" style="display: none;" onchange="handleFileUpload(event, 'effects')" multiple accept="audio/*"></label></p>
+</div>
+<div id="effects"></div>
+<button class="stop" onclick="stopEffect()">STOP FX</button>
+</div>
+
+<div class="center">
+<div class="mode-toggle">
+<label for="proMode" style="margin: 0;">Pro Mode</label>
+<input type="checkbox" id="proMode">
+</div>
+
+<h2>SOUNDBOARD</h2>
+
+<textarea id="script" placeholder="[Scene]
+• newspaper opening
+• page 1
+• page 2
+Dialogue continues..."></textarea>
+
+<div class="controls">
+    <div class="vol-control">
+        <label>BGM VOLUME (W / S)</label>
+        <input type="range" id="bgmVol" min="0" max="1" step="0.005" value="0.6">
+        <div class="vol-percent" id="bgmVolDisplay">
+            <input type="number" id="bgmVolPercent" min="0" max="100" value="60">
+            <span>%</span>
+        </div>
+    </div>
+    <div class="vol-control">
+        <label>FX VOLUME (8 / 2)</label>
+        <input type="range" id="fxVol" min="0" max="1" step="0.005" value="1">
+        <div class="vol-percent" id="fxVolDisplay">
+            <input type="number" id="fxVolPercent" min="0" max="100" value="100">
+            <span>%</span>
+        </div>
+    </div>
+    <div>
+        <button class="stop" onclick="stopAll()">STOP ALL</button>
+    </div>
+    <div class="shortcut-hint">Shortcuts (+/- 2.5%): BGM [W/S] | FX [8/2]</div>
+</div>
+</div>
+
+<div class="panel">
+<h2>BGM</h2>
+<div id="fileDropBGM" class="drop-zone" ondrop="handleDrop(event, 'bgm')" ondragover="event.preventDefault()" ondragleave="event.target.classList.remove('drag-over')" ondragenter="event.target.classList.add('drag-over')">
+<p style="text-align: center; color: var(--muted); font-size: 12px; margin: 10px 0;">Drag & Drop or <label style="color: white; cursor: pointer; text-decoration: underline;">Click to Upload<input type="file" id="bgmUpload" style="display: none;" onchange="handleFileUpload(event, 'bgm')" multiple accept="audio/*"></label></p>
+</div>
+<div id="bgms"></div>
+<button class="stop" onclick="stopBGM()">STOP BGM</button>
+</div>
+
+<script>
+let currentBGMBtn = null;
+let currentBGMRow = null;
+let bgmToggling = false;
+let currentBGMSrc = null;
+
+let currentFXSrc = null;
+let bgm = new Audio();
+let fx = new Audio();
+let bgmBase = 0.6;
+let duckTarget = 0.8;
+let duckTimer;
+
+const STORAGE_EFFECTS = "sb_effects";
+const STORAGE_BGM = "sb_bgm";
+const STORAGE_SCRIPT = "sb_script";
+const STORAGE_BGM_VOL = "sb_bgm_vol";
+const STORAGE_FX_VOL = "sb_fx_vol";
+const STORAGE_KEYBINDS = "sb_keybinds";
+
+const audioFileStore = { effects: {}, bgm: {} };
+let keybinds = JSON.parse(localStorage.getItem(STORAGE_KEYBINDS) || "{}");
+
+function handleDrop(e, type) {
+    e.preventDefault();
+    e.target.classList.remove("drag-over");
+    Array.from(e.dataTransfer.files).forEach(file => {
+        if (file.type.startsWith("audio/")) processFile(file, type);
+    });
+}
+
+function handleFileUpload(e, type) {
+    Array.from(e.target.files).forEach(file => {
+        if (file.type.startsWith("audio/")) processFile(file, type);
+    });
+    e.target.value = "";
+}
+
+function processFile(file, type) {
+    audioFileStore[type][file.name] = file;
+    const storageKey = type === "effects" ? STORAGE_EFFECTS : STORAGE_BGM;
+    const files = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    if (!files.includes(file.name)) {
+        files.push(file.name);
+        localStorage.setItem(storageKey, JSON.stringify(files));
+    }
+    loadFilesFromStorage(type);
+}
+
+function loadFilesFromStorage(type) {
+    const isBGM = type === "bgm";
+    const container = isBGM ? document.getElementById("bgms") : document.getElementById("effects");
+    const storageKey = isBGM ? STORAGE_BGM : STORAGE_EFFECTS;
+    container.innerHTML = "";
+    
+    const fileNames = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    fileNames.forEach((fileName, index) => {
+        const row = document.createElement("div");
+        row.className = "track track-row";
+        if (currentBGMSrc && isBGM && audioFileStore.bgm[fileName] === currentBGMSrc) row.classList.add("active");
+
+        const label = document.createElement("span");
+        label.textContent = fileName.length > 20 ? fileName.substring(0,17) + "..." : fileName;
+        label.style.flex = "1";
+        label.style.fontSize = "12px";
+
+        const controlsWrapper = document.createElement("div");
+        controlsWrapper.style.display = "flex";
+        controlsWrapper.style.alignItems = "center";
+        controlsWrapper.style.gap = "5px";
+
+        if (!isBGM) {
+            const keyInput = document.createElement("input");
+            keyInput.className = "key-input";
+            keyInput.placeholder = "Key";
+            keyInput.value = keybinds[fileName] || "";
+            keyInput.onkeydown = (e) => {
+                e.preventDefault();
+                const key = e.key === " " ? "Space" : e.key;
+                if(e.key === "Backspace" || e.key === "Delete") {
+                    keyInput.value = "";
+                    delete keybinds[fileName];
+                } else {
+                    keyInput.value = key;
+                    keybinds[fileName] = key;
+                }
+                localStorage.setItem(STORAGE_KEYBINDS, JSON.stringify(keybinds));
+            };
+            controlsWrapper.appendChild(keyInput);
+        }
+
+        const btn = document.createElement("button");
+        btn.className = "player-btn";
+        btn.textContent = "▶";
+        btn.onclick = () => {
+            const file = audioFileStore[type][fileName];
+            if (!file) return;
+            if (!isBGM) toggleFX(file, btn, row);
+            else playBGM(file, row, btn);
+        };
+
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "player-btn";
+        deleteBtn.textContent = "✕";
+        deleteBtn.style.width = "24px"; deleteBtn.style.height = "24px";
+        deleteBtn.onclick = (e) => {
+            e.stopPropagation();
+            const files = JSON.parse(localStorage.getItem(storageKey) || "[]");
+            files.splice(index, 1);
+            localStorage.setItem(storageKey, JSON.stringify(files));
+            delete audioFileStore[type][fileName];
+            if(!isBGM) { delete keybinds[fileName]; localStorage.setItem(STORAGE_KEYBINDS, JSON.stringify(keybinds)); }
+            loadFilesFromStorage(type);
+        };
+
+        row.appendChild(label);
+        controlsWrapper.appendChild(btn);
+        controlsWrapper.appendChild(deleteBtn);
+        row.appendChild(controlsWrapper);
+        container.appendChild(row);
+    });
+}
+
+function duck(down=true){
+ clearInterval(duckTimer);
+ duckTimer=setInterval(()=>{
+  if(down && bgm.volume>bgmBase*duckTarget) bgm.volume-=0.02;
+  if(!down && bgm.volume<bgmBase) bgm.volume+=0.02;
+ },30);
+}
+
+let currentFXBtn = null;
+let fxToggling = false;
+
+function toggleFX(file, btn, row) {
+    if (currentFXSrc === file && !fx.paused) {
+        fx.pause(); btn.textContent = "▶"; duck(false); return;
+    }
+    if (fxToggling) return;
+    fxToggling = true;
+    setTimeout(() => { fxToggling = false; }, 150);
+    if (currentFXBtn) currentFXBtn.textContent = "▶";
+    [...document.getElementById("effects").children].forEach(x=>x.classList.remove("active"));
+    row.classList.add("active");
+    fx.pause();
+    fx = new Audio(URL.createObjectURL(file));
+    fx.volume = fxVol.value;
+    fx.play();
+    btn.textContent = "⏸";
+    currentFXBtn = btn;
+    currentFXSrc = file;
+    duck(true);
+    fx.onended = () => { btn.textContent = "▶"; duck(false); row.classList.remove("active"); };
+}
+
+function playBGM(file, row, btn) {
+    if (currentBGMSrc === file) {
+        if (bgm.paused) { bgm.play(); btn.textContent = "⏸"; } 
+        else { bgm.pause(); btn.textContent = "▶"; }
+        return;
+    }
+    if (bgmToggling) return;
+    bgmToggling = true;
+    setTimeout(() => { bgmToggling = false; }, 150);
+    if (currentBGMBtn) currentBGMBtn.textContent = "▶";
+    [...document.getElementById("bgms").children].forEach(x=>x.classList.remove("active"));
+    bgm.pause();
+    bgm = new Audio(URL.createObjectURL(file));
+    bgm.loop = true;
+    bgm.volume = bgmVol.value;
+    bgm.play();
+    row.classList.add("active");
+    btn.textContent = "⏸";
+    currentBGMBtn = btn; currentBGMRow = row; currentBGMSrc = file;
+}
+
+function stopEffect() { fx.pause(); if (currentFXBtn) currentFXBtn.textContent = "▶"; duck(false); }
+function stopBGM() { bgm.pause(); if (currentBGMBtn) currentBGMBtn.textContent = "▶"; if (currentBGMRow) currentBGMRow.classList.remove("active"); }
+function stopAll(){ fx.pause(); bgm.pause(); duck(false); }
+
+bgmVol.oninput = e => { bgmBase = bgm.volume = e.target.value; bgmVolPercent.value = Math.round(e.target.value * 100); localStorage.setItem(STORAGE_BGM_VOL, e.target.value); };
+fxVol.oninput = e => { fx.volume = e.target.value; fxVolPercent.value = Math.round(e.target.value * 100); localStorage.setItem(STORAGE_FX_VOL, e.target.value); };
+
+script.oninput = () => localStorage.setItem(STORAGE_SCRIPT, script.value);
+proMode.onchange = e => { document.getElementById("bgmVolDisplay").classList.toggle("show", e.target.checked); document.getElementById("fxVolDisplay").classList.toggle("show", e.target.checked); };
+
+document.querySelectorAll("input[type=range]").forEach(s=>{
+ const u=()=>{ s.style.setProperty("--val",(s.value-s.min)/(s.max-s.min)*100+"%"); };
+ s.addEventListener("input",u); u();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.target.matches('textarea, input')) return;
+    const step = 0.025;
+    const key = e.key === " " ? "Space" : e.key;
+
+    // Volume Controls
+    if (e.key.toLowerCase() === 'w') { bgmVol.value = Math.min(1, parseFloat(bgmVol.value) + step); bgmVol.dispatchEvent(new Event('input')); } 
+    else if (e.key.toLowerCase() === 's') { bgmVol.value = Math.max(0, parseFloat(bgmVol.value) - step); bgmVol.dispatchEvent(new Event('input')); }
+    else if (e.key === '8') { fxVol.value = Math.min(1, parseFloat(fxVol.value) + step); fxVol.dispatchEvent(new Event('input')); }
+    else if (e.key === '2') { fxVol.value = Math.max(0, parseFloat(fxVol.value) - step); fxVol.dispatchEvent(new Event('input')); }
+
+    // Keybound Effects
+    for (const [fileName, bind] of Object.entries(keybinds)) {
+        if (bind === key) {
+            const file = audioFileStore.effects[fileName];
+            if (file) {
+                const rows = [...document.getElementById("effects").children];
+                const targetRow = rows.find(r => r.querySelector('span').textContent.startsWith(fileName.substring(0,10)));
+                const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
+                toggleFX(file, targetBtn, targetRow);
+            }
+        }
+    }
+});
+
+// Load saved data
+const savedScript = localStorage.getItem(STORAGE_SCRIPT);
+if (savedScript) script.value = savedScript;
+const savedBGMVol = localStorage.getItem(STORAGE_BGM_VOL);
+if (savedBGMVol) { bgmVol.value = savedBGMVol; bgmBase = savedBGMVol; bgmVolPercent.value = Math.round(savedBGMVol * 100); bgmVol.dispatchEvent(new Event('input')); }
+const savedFXVol = localStorage.getItem(STORAGE_FX_VOL);
+if (savedFXVol) { fxVol.value = savedFXVol; fxVolPercent.value = Math.round(savedFXVol * 100); fxVol.dispatchEvent(new Event('input')); }
+
+loadFilesFromStorage("effects");
+loadFilesFromStorage("bgm");
+</script>
+
+</body>
+</html>
