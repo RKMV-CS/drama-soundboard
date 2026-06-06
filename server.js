@@ -221,7 +221,7 @@ app.post(
     const prompt = `Classify this audio filename for a theater soundboard.\nReply with ONLY one word: "bgm" (background music, ambient, loops) or "effects" (sound effects, stingers, one-shots).\nFilename: ${filename}`;
 
     const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
       {
         method: "POST",
         headers: {
@@ -283,7 +283,7 @@ Script:
 ${script.trim()}`;
 
     const geminiRes = await fetch(
-      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
       {
         method: "POST",
         headers: {
