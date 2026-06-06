@@ -716,6 +716,7 @@ function applyAIState() {
         btn.textContent = 'AI OFF';
         btn.classList.add('off');
         if (panel) panel.style.display = 'none';
+        aiPanelOpen = false;
         if (panelToggle) panelToggle.style.display = 'none';
     }
 }
@@ -955,7 +956,8 @@ function addStep() {
         volume: 1.0,
         loop: false,
         delay: 0,
-        autoNext: false
+        autoNext: false,
+        aiGenerated: false
     });
     renderSteps();
     saveSteps();
