@@ -331,6 +331,35 @@ button:hover { border-color: white; }
     color: #444;
     margin-top: 5px;
 }
+
+/* TOASTS */
+#toast-container {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 1000;
+}
+.toast {
+    padding: 10px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    background: #111;
+    color: var(--text);
+    animation: slideIn 0.2s ease;
+    opacity: 1;
+    transition: opacity 0.3s;
+}
+.toast.success { border-color: #22c55e; }
+.toast.error { border-color: #ef4444; }
+.toast.info { border-color: #3b82f6; }
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
 </style>
 </head>
 
@@ -407,6 +436,16 @@ Dialogue continues..."></textarea>
 </div>
 
 <script>
+// Storage keys
+const STORAGE_SCRIPT = "sb_script";
+const STORAGE_BGM_VOL = "sb_bgm_vol";
+const STORAGE_FX_VOL = "sb_fx_vol";
+
+// Project state
+let projectId = null;
+let audioFileStore = { effects: {}, bgm: {} };
+let keybinds = {};
+
 let currentBGMBtn = null;
 let currentBGMRow = null;
 let bgmToggling = false;
@@ -424,6 +463,200 @@ function duck(down=true){
   if(down && bgm.volume>bgmBase*duckTarget) bgm.volume-=0.02;
   if(!down && bgm.volume<bgmBase) bgm.volume+=0.02;
  },30);
+}
+
+function renderTrack(fileName, source, type) {
+    const containerId = type === 'bgm' ? 'bgms' : 'effects';
+    const container = document.getElementById(containerId);
+
+    // Remove existing track with same name to avoid duplicates
+    const existing = container.querySelector(`[data-filename="${CSS.escape(fileName)}"]`);
+    if (existing) existing.remove();
+
+    const row = document.createElement('div');
+    row.className = 'track';
+    row.dataset.filename = fileName;
+
+    const trackRow = document.createElement('div');
+    trackRow.className = 'track-row';
+
+    const btn = document.createElement('button');
+    btn.className = 'player-btn';
+    btn.textContent = '▶';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.textContent = fileName.length > 18 ? fileName.substring(0, 18) + '…' : fileName;
+    nameSpan.title = fileName;
+    nameSpan.style.flex = '1';
+    nameSpan.style.fontSize = '12px';
+    nameSpan.style.overflow = 'hidden';
+    nameSpan.style.whiteSpace = 'nowrap';
+    nameSpan.style.textOverflow = 'ellipsis';
+
+    if (type === 'effects') {
+        const keyInput = document.createElement('input');
+        keyInput.className = 'key-input';
+        keyInput.placeholder = '…';
+        keyInput.maxLength = 5;
+        keyInput.title = 'Press a key to bind';
+        keyInput.value = keybinds[fileName] || '';
+        keyInput.addEventListener('keydown', (e) => {
+            e.preventDefault();
+            const k = e.key === ' ' ? 'Space' : e.key;
+            keybinds[fileName] = k;
+            keyInput.value = k;
+            saveKeybinds();
+        });
+        trackRow.appendChild(keyInput);
+    }
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.title = 'Remove';
+    delBtn.style.cssText = 'width:24px;height:24px;padding:0;font-size:11px;color:#666;background:transparent;border:none;cursor:pointer;';
+    delBtn.onmouseenter = () => delBtn.style.color = '#ff4444';
+    delBtn.onmouseleave = () => delBtn.style.color = '#666';
+    delBtn.onclick = () => deleteTrack(fileName, type, row);
+
+    if (type === 'bgm') {
+        btn.onclick = () => playBGM(source, row, btn, true);
+    } else {
+        btn.onclick = () => toggleFX(source, btn, row);
+    }
+
+    trackRow.prepend(btn);
+    trackRow.appendChild(nameSpan);
+    trackRow.appendChild(delBtn);
+    row.appendChild(trackRow);
+    container.appendChild(row);
+}
+
+function showToast(msg, type, duration) {
+    if (duration === undefined) duration = 2500;
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast ' + (type || 'info');
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(function() {
+        toast.style.opacity = '0';
+        setTimeout(function() { toast.remove(); }, 300);
+    }, duration);
+}
+
+async function initProject() {
+    const params = new URLSearchParams(window.location.search);
+    projectId = params.get('project');
+
+    if (!projectId) {
+        document.getElementById('project-title').textContent = 'SOUNDBOARD';
+        return;
+    }
+
+    try {
+        showToast('Loading project…', 'info');
+        const res = await fetch(`/projects/${projectId}/open`, { method: 'POST' });
+        if (!res.ok) throw new Error('Project not found');
+        const data = await res.json();
+
+        document.getElementById('project-title').textContent =
+            (data.project?.name || 'SOUNDBOARD').toUpperCase();
+
+        const categories = data.project?.categories || {};
+        const baseUrl = `/projects/${projectId}/audios`;
+
+        for (const filename of (data.audios || [])) {
+            const url = `${baseUrl}/${encodeURIComponent(filename)}`;
+            const type = categories[filename] || 'effects';
+            audioFileStore[type][filename] = url;
+            renderTrack(filename, url, type);
+        }
+
+        loadKeybinds();
+        showToast('Project loaded', 'success');
+    } catch (err) {
+        console.error('initProject failed:', err);
+        showToast('Failed to load project', 'error');
+    }
+}
+
+function saveKeybinds() {
+    localStorage.setItem('sb_keybinds_' + (projectId || ''), JSON.stringify(keybinds));
+}
+
+function loadKeybinds() {
+    const saved = localStorage.getItem('sb_keybinds_' + (projectId || ''));
+    if (saved) keybinds = JSON.parse(saved);
+}
+
+async function uploadAudioFile(file, type) {
+    if (!projectId) {
+        const url = URL.createObjectURL(file);
+        audioFileStore[type][file.name] = url;
+        renderTrack(file.name, url, type);
+        return;
+    }
+    const form = new FormData();
+    form.append('file', file);
+    form.append('type', type);
+    try {
+        const res = await fetch('/projects/' + projectId + '/audios/upload', {
+            method: 'POST',
+            body: form
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Upload failed');
+        }
+        const data = await res.json();
+        const url = '/projects/' + projectId + '/audios/' + encodeURIComponent(data.filename);
+        audioFileStore[type][data.filename] = url;
+        renderTrack(data.filename, url, type);
+        showToast('Saved: ' + data.filename, 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+}
+
+async function handleDrop(event, type) {
+    event.preventDefault();
+    event.target.classList.remove('drag-over');
+    const files = Array.from(event.dataTransfer.files).filter(f => f.type.startsWith('audio/'));
+    if (!files.length) { showToast('Drop audio files only', 'error'); return; }
+    for (const file of files) await uploadAudioFile(file, type);
+}
+
+async function handleFileUpload(event, type) {
+    const files = Array.from(event.target.files);
+    event.target.value = '';
+    for (const file of files) await uploadAudioFile(file, type);
+}
+
+async function deleteTrack(fileName, type, rowEl) {
+    if (!projectId) {
+        const src = audioFileStore[type][fileName];
+        if (src && src.startsWith('blob:')) URL.revokeObjectURL(src);
+        delete audioFileStore[type][fileName];
+        delete keybinds[fileName];
+        rowEl.remove();
+        return;
+    }
+    try {
+        const res = await fetch('/projects/' + projectId + '/audios/' + encodeURIComponent(fileName), {
+            method: 'DELETE'
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Delete failed');
+        }
+        delete audioFileStore[type][fileName];
+        delete keybinds[fileName];
+        saveKeybinds();
+        rowEl.remove();
+        showToast('Removed: ' + fileName, 'success');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
 }
 
 // STEPWISE LOGIC
@@ -839,6 +1072,8 @@ initProject().then(() => {
 });
 
 </script>
+
+<div id="toast-container"></div>
 
 </body>
 </html>
