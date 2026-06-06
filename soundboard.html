@@ -435,6 +435,7 @@ Dialogue continues..."></textarea>
 <button class="stop" onclick="stopBGM()">STOP BGM</button>
 </div>
 
+<div id="toast-container"></div>
 <script>
 // Storage keys
 const STORAGE_SCRIPT = "sb_script";
@@ -586,7 +587,9 @@ function saveKeybinds() {
 
 function loadKeybinds() {
     const saved = localStorage.getItem('sb_keybinds_' + (projectId || ''));
-    if (saved) keybinds = JSON.parse(saved);
+    if (saved) {
+        try { keybinds = JSON.parse(saved); } catch { keybinds = {}; }
+    }
 }
 
 async function uploadAudioFile(file, type) {
@@ -671,7 +674,11 @@ function saveSteps() {
 function loadSteps() {
     const saved = localStorage.getItem(STORAGE_STEPS + (projectId || ""));
     if (saved) {
-        steps = JSON.parse(saved);
+        try {
+            steps = JSON.parse(saved);
+        } catch {
+            steps = [];
+        }
         renderSteps();
     }
 }
@@ -874,7 +881,7 @@ async function executeStep(step) {
         case 'play_fx':
             if (fxSource) {
                 const rows = [...document.getElementById("effects").children];
-                const targetRow = rows.find(r => r.querySelector('span').textContent.includes(step.target.substring(0,10)));
+                const targetRow = rows.find(r => r.dataset.filename === step.target);
                 const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
                 toggleFX(fxSource, targetBtn, targetRow, step.loop);
             }
@@ -882,7 +889,7 @@ async function executeStep(step) {
         case 'play_bgm':
             if (bgmSource) {
                 const rows = [...document.getElementById("bgms").children];
-                const targetRow = rows.find(r => r.querySelector('span').textContent.includes(step.target.substring(0,10)));
+                const targetRow = rows.find(r => r.dataset.filename === step.target);
                 const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
                 playBGM(bgmSource, targetRow, targetBtn, step.loop);
             }
@@ -1072,8 +1079,6 @@ initProject().then(() => {
 });
 
 </script>
-
-<div id="toast-container"></div>
 
 </body>
 </html>

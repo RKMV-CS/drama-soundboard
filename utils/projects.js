@@ -191,7 +191,10 @@ async function addAudioFile(id, tempPath, originalName, type) {
   const { slug, paths } = resolved;
   await ensureProjectDirs(slug);
 
-  const filename = path.basename(originalName);
+  const filename = path.basename(originalName).replace(/[^a-zA-Z0-9._-]/g, '_');
+  if (!filename || filename.startsWith('.') || !zip.isAudioFile(filename)) {
+    throw new Error('Invalid audio filename');
+  }
   const dest = path.join(paths.audiosDir, filename);
   await fs.copyFile(tempPath, dest);
 
@@ -213,8 +216,9 @@ async function deleteAudioFile(id, filename) {
   const filePath = path.join(paths.audiosDir, filename);
   try {
     await fs.unlink(filePath);
-  } catch {
-    return null;
+  } catch (err) {
+    if (err.code !== 'ENOENT') return null;
+    // file already gone — still clean up stale metadata below
   }
 
   const meta = await loadProjectJson(slug);
