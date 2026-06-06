@@ -366,6 +366,15 @@ button:hover { border-color: white; }
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
+.ai-badge {
+    background: #7c6af722;
+    border: 1px solid #7c6af755;
+    color: #7c6af7;
+    border-radius: 3px;
+    padding: 1px 5px;
+    font-size: 9px;
+    flex-shrink: 0;
+}
 </style>
 </head>
 
@@ -555,6 +564,80 @@ function showToast(msg, type, duration) {
     }, duration);
 }
 
+function showAICategorizerToast(filename, aiCategory, originalType) {
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = 'toast info';
+    toast.style.cssText = 'min-width:260px;padding:10px 14px;';
+
+    const label = document.createElement('div');
+    label.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;';
+    label.innerHTML = `
+        <div>
+            <div style="font-size:10px;color:#7c6af7;text-transform:uppercase;margin-bottom:2px">✦ AI Classified</div>
+            <div style="font-size:12px;font-weight:600">${filename.length > 20 ? filename.substring(0,20)+'…' : filename} → ${aiCategory === 'bgm' ? 'BGM' : 'FX'}</div>
+        </div>
+        <span class="toast-close" style="cursor:pointer;color:#555;font-size:16px;line-height:1;padding-left:8px;">×</span>`;
+
+    const barWrap = document.createElement('div');
+    barWrap.style.cssText = 'display:flex;gap:8px;align-items:center;';
+
+    let undoClicked = false;
+    if (aiCategory !== originalType) {
+        const undoBtn = document.createElement('button');
+        undoBtn.textContent = 'Undo';
+        undoBtn.style.cssText = 'background:#222;border:1px solid #444;color:#ccc;padding:3px 10px;border-radius:4px;font-size:10px;cursor:pointer;flex-shrink:0;';
+        undoBtn.onclick = () => {
+            undoClicked = true;
+            reclassifyTrack(filename, aiCategory, originalType);
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        };
+        barWrap.appendChild(undoBtn);
+    }
+
+    const progressWrap = document.createElement('div');
+    progressWrap.style.cssText = 'flex:1;background:#333;border-radius:4px;height:3px;overflow:hidden;';
+    const bar = document.createElement('div');
+    bar.style.cssText = 'background:#7c6af7;height:100%;width:100%;transition:width 5s linear;';
+    progressWrap.appendChild(bar);
+    barWrap.appendChild(progressWrap);
+
+    toast.appendChild(label);
+    toast.appendChild(barWrap);
+    container.appendChild(toast);
+
+    toast.querySelector('.toast-close').onclick = () => {
+        toast.style.opacity = '0';
+        setTimeout(() => toast.remove(), 300);
+    };
+
+    requestAnimationFrame(() => { bar.style.width = '0%'; });
+
+    const timer = setTimeout(() => {
+        if (!undoClicked) {
+            toast.style.opacity = '0';
+            setTimeout(() => toast.remove(), 300);
+        }
+    }, 5000);
+
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
+}
+
+function reclassifyTrack(filename, fromType, toType) {
+    const url = audioFileStore[fromType][filename];
+    if (!url) return;
+    delete audioFileStore[fromType][filename];
+    audioFileStore[toType][filename] = url;
+
+    const fromContainer = document.getElementById(fromType === 'bgm' ? 'bgms' : 'effects');
+    const existing = fromContainer?.querySelector(`[data-filename="${CSS.escape(filename)}"]`);
+    if (existing) existing.remove();
+
+    renderTrack(filename, url, toType);
+    showToast(`Moved '${filename}' to ${toType === 'bgm' ? 'BGM' : 'FX'}`, 'info');
+}
+
 async function initProject() {
     const params = new URLSearchParams(window.location.search);
     projectId = params.get('project');
@@ -625,11 +708,41 @@ function applyAIState() {
     }
 }
 
+async function callChromeNanoCategorize(filename) {
+    const LM = window.LanguageModel || window.ai?.languageModel;
+    if (!LM) throw new Error('Chrome Nano not available');
+    const avail = await LM.availability?.() || await LM.capabilities?.().then(c => c.available) || 'no';
+    if (avail === 'no') throw new Error('Chrome Nano not available');
+    const session = await LM.create({
+        systemPrompt: 'You classify audio filenames for a theater soundboard. Reply with ONLY one word: bgm or effects.'
+    });
+    const result = await session.prompt(`Filename: ${filename}`);
+    session.destroy();
+    return result.toLowerCase().includes('bgm') ? 'bgm' : 'effects';
+}
+
+async function callChromeNanoScriptToSteps(script, availableAudio) {
+    const LM = window.LanguageModel || window.ai?.languageModel;
+    if (!LM) throw new Error('Chrome Nano not available');
+    const avail = await LM.availability?.() || await LM.capabilities?.().then(c => c.available) || 'no';
+    if (avail === 'no') throw new Error('Chrome Nano not available');
+    const session = await LM.create({
+        systemPrompt: 'You generate theater soundboard step sequences as JSON arrays.'
+    });
+    const prompt = `Available audio: ${availableAudio.join(', ')}\n\nScript: ${script}\n\nReturn ONLY a JSON array of steps, each with: type (play_fx/play_bgm/fade_in_bgm/fade_out_bgm/stop_all/wait), target (filename or ""), duration (number), loop (boolean), delay (0), autoNext (false).`;
+    const result = await session.prompt(prompt);
+    session.destroy();
+    const clean = result.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    const steps = JSON.parse(clean);
+    return Array.isArray(steps) ? steps.map(s => ({ ...s, delay: 0, autoNext: false, aiGenerated: true })) : [];
+}
+
 async function uploadAudioFile(file, type) {
     if (!projectId) {
         const url = URL.createObjectURL(file);
         audioFileStore[type][file.name] = url;
         renderTrack(file.name, url, type);
+        if (aiEnabled) runAICategorizerOnTrack(file.name, type);
         return;
     }
     const form = new FormData();
@@ -649,8 +762,46 @@ async function uploadAudioFile(file, type) {
         audioFileStore[type][data.filename] = url;
         renderTrack(data.filename, url, type);
         showToast('Saved: ' + data.filename, 'success');
+        if (aiEnabled) runAICategorizerOnTrack(data.filename, type);
     } catch (err) {
         showToast(err.message, 'error');
+    }
+}
+
+async function runAICategorizerOnTrack(filename, originalType) {
+    let aiCategory;
+    try {
+        const res = await fetch('/api/ai/categorize', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ filename })
+        });
+        if (!res.ok) throw new Error('server error');
+        const data = await res.json();
+        aiCategory = data.category;
+    } catch {
+        try {
+            aiCategory = await callChromeNanoCategorize(filename);
+        } catch {
+            return;
+        }
+    }
+
+    if (aiCategory !== originalType) {
+        reclassifyTrack(filename, originalType, aiCategory);
+    }
+    showAICategorizerToast(filename, aiCategory, originalType);
+
+    const finalType = aiCategory;
+    const container = document.getElementById(finalType === 'bgm' ? 'bgms' : 'effects');
+    const trackEl = container?.querySelector(`[data-filename="${CSS.escape(filename)}"]`);
+    if (trackEl && !trackEl.querySelector('.ai-badge')) {
+        const badge = document.createElement('span');
+        badge.className = 'ai-badge';
+        badge.textContent = 'AI';
+        badge.title = 'Classified by AI';
+        const nameEl = trackEl.querySelector('span[style]');
+        if (nameEl) nameEl.after(badge);
     }
 }
 
