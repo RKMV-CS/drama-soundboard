@@ -247,6 +247,91 @@ app.post(
   })
 );
 
+app.post(
+  "/api/ai/script-to-steps",
+  asyncHandler(async (req, res) => {
+    const { script, availableAudio } = req.body || {};
+    if (!script || typeof script !== "string" || !script.trim()) {
+      return res.status(400).json({ error: "script is required" });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ error: "GEMINI_API_KEY not configured" });
+    }
+
+    const audioList = Array.isArray(availableAudio) && availableAudio.length
+      ? availableAudio.join(", ")
+      : "(none uploaded yet)";
+
+    const prompt = `You are a theater soundboard assistant. Analyze the script below and generate sound cue steps.
+
+Available audio files: ${audioList}
+
+Rules:
+- Use ONLY filenames from the available audio list for "target". If no match exists, use an empty string.
+- Return ONLY a raw JSON array, no markdown, no explanation.
+- Each element must have exactly these fields:
+  type (one of: play_fx, play_bgm, pause_bgm, resume_bgm, fade_in_bgm, fade_out_bgm, stop_fx, stop_all, wait),
+  target (filename string or ""),
+  duration (number: 0 for non-fade/non-wait types, 1000-3000 for fades, milliseconds for wait),
+  loop (boolean: true only for ambient bgm),
+  delay (number: always 0),
+  autoNext (boolean: always false)
+
+Script:
+${script.trim()}`;
+
+    const geminiRes = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.2, maxOutputTokens: 2048 },
+        }),
+      }
+    );
+
+    if (!geminiRes.ok) {
+      const err = await geminiRes.text();
+      return res.status(502).json({ error: "Gemini API error", detail: err });
+    }
+
+    const data = await geminiRes.json();
+    let raw = data?.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || "[]";
+
+    // Strip markdown code fences if Gemini wrapped the JSON
+    raw = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "").trim();
+
+    let steps;
+    try {
+      steps = JSON.parse(raw);
+      if (!Array.isArray(steps)) throw new Error("not an array");
+    } catch {
+      return res.status(502).json({ error: "Could not parse Gemini response as JSON", raw });
+    }
+
+    // Sanitize each step to match the expected schema
+    const validTypes = ["play_fx","play_bgm","pause_bgm","resume_bgm","fade_in_bgm","fade_out_bgm","stop_fx","stop_all","wait"];
+    steps = steps.map(s => ({
+      type: validTypes.includes(s.type) ? s.type : "wait",
+      target: typeof s.target === "string" ? s.target : "",
+      duration: typeof s.duration === "number" ? s.duration : 0,
+      loop: !!s.loop,
+      delay: 0,
+      autoNext: false,
+      aiGenerated: true,
+    }));
+
+    res.json({ steps });
+  })
+);
+
 app.use((err, _req, res, _next) => {
   console.error("[error]", err);
   res.status(500).json({ error: err.message || "Internal server error" });
