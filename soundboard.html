@@ -276,6 +276,12 @@ button:hover { border-color: white; }
     color: var(--muted);
 }
 
+#aiToggleBtn.off {
+    background: #111;
+    border-color: #333;
+    color: #555;
+}
+
 /* VOLUME CONTROLS */
 .vol-control {
     display: flex;
@@ -379,6 +385,8 @@ button:hover { border-color: white; }
 <a href="index.html" style="color: var(--muted); text-decoration: none; margin-right: 20px;">← Back to Projects</a>
 <label for="proMode" style="margin: 0;">Pro Mode</label>
 <input type="checkbox" id="proMode">
+<span style="width:1px;height:14px;background:#333;margin:0 4px;display:inline-block"></span>
+<button id="aiToggleBtn" onclick="toggleAI()" style="background:#7c6af722;border:1px solid #7c6af766;color:#7c6af7;padding:3px 10px;border-radius:10px;font-size:11px;cursor:pointer;">✦ AI ON</button>
 </div>
 
 <h2 id="project-title">SOUNDBOARD</h2>
@@ -441,6 +449,8 @@ Dialogue continues..."></textarea>
 const STORAGE_SCRIPT = "sb_script";
 const STORAGE_BGM_VOL = "sb_bgm_vol";
 const STORAGE_FX_VOL = "sb_fx_vol";
+const STORAGE_AI_ENABLED = "sb_ai_enabled";
+let aiEnabled = localStorage.getItem(STORAGE_AI_ENABLED) !== "false";
 
 // Project state
 let projectId = null;
@@ -589,6 +599,29 @@ function loadKeybinds() {
     const saved = localStorage.getItem('sb_keybinds_' + (projectId || ''));
     if (saved) {
         try { keybinds = JSON.parse(saved); } catch { keybinds = {}; }
+    }
+}
+
+function toggleAI() {
+    aiEnabled = !aiEnabled;
+    localStorage.setItem(STORAGE_AI_ENABLED, aiEnabled);
+    applyAIState();
+}
+
+function applyAIState() {
+    const btn = document.getElementById('aiToggleBtn');
+    const panel = document.getElementById('ai-panel');
+    const panelToggle = document.getElementById('ai-panel-toggle');
+    if (!btn) return;
+    if (aiEnabled) {
+        btn.textContent = '✦ AI ON';
+        btn.classList.remove('off');
+        if (panelToggle) panelToggle.style.display = '';
+    } else {
+        btn.textContent = 'AI OFF';
+        btn.classList.add('off');
+        if (panel) panel.style.display = 'none';
+        if (panelToggle) panelToggle.style.display = 'none';
     }
 }
 
@@ -1076,6 +1109,7 @@ if (savedFXVol) { fxVol.value = savedFXVol; fxVolPercent.value = Math.round(save
 
 initProject().then(() => {
     loadSteps();
+    applyAIState();
 });
 
 </script>
