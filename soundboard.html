@@ -584,12 +584,27 @@ function showAICategorizerToast(filename, aiCategory, originalType) {
 
     const label = document.createElement('div');
     label.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;';
-    label.innerHTML = `
-        <div>
-            <div style="font-size:10px;color:#7c6af7;text-transform:uppercase;margin-bottom:2px">✦ AI Classified</div>
-            <div style="font-size:12px;font-weight:600">${filename.length > 20 ? filename.substring(0,20)+'…' : filename} → ${aiCategory === 'bgm' ? 'BGM' : 'FX'}</div>
-        </div>
-        <span class="toast-close" style="cursor:pointer;color:#555;font-size:16px;line-height:1;padding-left:8px;">×</span>`;
+
+    const labelLeft = document.createElement('div');
+
+    const classifiedLabel = document.createElement('div');
+    classifiedLabel.style.cssText = 'font-size:10px;color:#7c6af7;text-transform:uppercase;margin-bottom:2px';
+    classifiedLabel.textContent = '✦ AI Classified';
+
+    const filenameLabel = document.createElement('div');
+    filenameLabel.style.cssText = 'font-size:12px;font-weight:600';
+    filenameLabel.textContent = `${filename.length > 20 ? filename.substring(0,20)+'…' : filename} → ${aiCategory === 'bgm' ? 'BGM' : 'FX'}`;
+
+    labelLeft.appendChild(classifiedLabel);
+    labelLeft.appendChild(filenameLabel);
+
+    const closeBtn = document.createElement('span');
+    closeBtn.className = 'toast-close';
+    closeBtn.style.cssText = 'cursor:pointer;color:#555;font-size:16px;line-height:1;padding-left:8px;';
+    closeBtn.textContent = '×';
+
+    label.appendChild(labelLeft);
+    label.appendChild(closeBtn);
 
     const barWrap = document.createElement('div');
     barWrap.style.cssText = 'display:flex;gap:8px;align-items:center;';
@@ -619,7 +634,7 @@ function showAICategorizerToast(filename, aiCategory, originalType) {
     toast.appendChild(barWrap);
     container.appendChild(toast);
 
-    toast.querySelector('.toast-close').onclick = () => {
+    closeBtn.onclick = () => {
         toast.style.opacity = '0';
         setTimeout(() => toast.remove(), 300);
     };
@@ -697,6 +712,8 @@ function loadKeybinds() {
     }
 }
 
+let aiPanelOpen = false;
+
 function toggleAI() {
     aiEnabled = !aiEnabled;
     localStorage.setItem(STORAGE_AI_ENABLED, aiEnabled);
@@ -720,8 +737,6 @@ function applyAIState() {
         if (panelToggle) panelToggle.style.display = 'none';
     }
 }
-
-let aiPanelOpen = false;
 
 function toggleAIPanel() {
     aiPanelOpen = !aiPanelOpen;
