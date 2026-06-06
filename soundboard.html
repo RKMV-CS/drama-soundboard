@@ -1,0 +1,844 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Soundboard</title>
+
+<style>
+:root {
+    --bg: #000;
+    --panel: #050505;
+    --border: #1a1a1a;
+    --text: #f8fafc;
+    --muted: #9ca3af;
+}
+
+* {
+    box-sizing: border-box;
+    font-family: "Segoe UI", system-ui;
+}
+
+body {
+    margin: 0;
+    height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    display: grid;
+    grid-template-columns: 1.2fr 2fr 1.2fr;
+}
+
+/* PANELS */
+.panel {
+    padding: 14px;
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.panel:last-child { border-right: none; }
+
+h2 {
+    text-align: center;
+    letter-spacing: 4px;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+/* TRACKS */
+.track {
+    padding: 10px;
+    margin-bottom: 6px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+}
+.track-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.player-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #111;
+    border: 1px solid white;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.player-btn:hover {
+    background: white;
+    color: black;
+}
+
+.track:hover { border-color: white; }
+
+.track.active {
+    background: #111;
+    box-shadow: 0 0 8px rgba(255,255,255,0.3);
+}
+
+/* KEYBIND INPUT */
+.key-input {
+    width: 35px;
+    height: 28px;
+    background: #000;
+    border: 1px solid #333;
+    color: #fff;
+    text-align: center;
+    font-size: 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+.key-input:focus {
+    border-color: white;
+    outline: none;
+    background: #111;
+}
+
+/* CENTER */
+.center {
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+}
+
+.stepwise-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    padding: 14px;
+    overflow-y: auto;
+    position: relative;
+}
+
+.steps-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+}
+
+.step-item {
+    background: #0a0a0a;
+    border: 1px solid #222;
+    padding: 10px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.step-item.active {
+    border-color: #fff;
+    box-shadow: 0 0 10px rgba(255,255,255,0.2);
+    background: #111;
+}
+
+.step-item .index {
+    font-size: 10px;
+    color: #444;
+    width: 20px;
+}
+
+.step-item select, .step-item input {
+    background: #000;
+    color: #fff;
+    border: 1px solid #333;
+    padding: 4px 6px;
+    font-size: 11px;
+    border-radius: 4px;
+}
+
+.step-item input[type="checkbox"] {
+    width: auto;
+    cursor: pointer;
+}
+
+.step-item label {
+    font-size: 9px;
+    margin-right: 4px;
+}
+
+.step-item select:focus, .step-item input:focus {
+    outline: none;
+    border-color: white;
+}
+
+.step-item .remove-step {
+    margin-left: auto;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    background: transparent;
+    border: none;
+}
+
+.step-item .remove-step:hover {
+    color: #ff4444;
+}
+
+.step-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+#script {
+    display: none; /* Hide original script box */
+}
+
+/* CONTROLS */
+.controls {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+label {
+    font-size: 11px;
+    color: var(--muted);
+}
+
+/* NEON SLIDERS */
+input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(
+        to right,
+        white 0%,
+        white var(--val, 50%),
+        #333 var(--val, 50%),
+        #333 100%
+    );
+    border-radius: 10px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 0 10px rgba(255,255,255,.7);
+    cursor: pointer;
+}
+
+/* BUTTONS */
+button {
+    background: #111;
+    color: white;
+    border: 1px solid var(--border);
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+button:hover { border-color: white; }
+
+.stop { border-color: white; }
+
+/* MODE TOGGLE */
+.mode-toggle {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--muted);
+}
+
+/* VOLUME CONTROLS */
+.vol-control {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.vol-percent {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+}
+
+.vol-percent.show {
+    display: flex;
+}
+
+.vol-percent input[type="number"] {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    width: 50px;
+    text-align: center;
+}
+
+.vol-percent input[type="number"]:focus {
+    outline: none;
+    border-color: white;
+}
+
+/* DRAG AND DROP */
+.drop-zone {
+    padding: 12px;
+    border: 2px dashed var(--border);
+    border-radius: 6px;
+    margin-bottom: 10px;
+    transition: all 0.2s ease;
+}
+
+.drop-zone.drag-over {
+    border-color: white;
+    background: rgba(255,255,255,0.05);
+}
+
+.shortcut-hint {
+    grid-column: span 3;
+    text-align: center;
+    font-size: 10px;
+    color: #444;
+    margin-top: 5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+<h2>EFFECTS</h2>
+<div id="fileDropEffect" class="drop-zone" ondrop="handleDrop(event, 'effects')" ondragover="event.preventDefault()" ondragleave="event.target.classList.remove('drag-over')" ondragenter="event.target.classList.add('drag-over')">
+<p style="text-align: center; color: var(--muted); font-size: 12px; margin: 10px 0;">Drag & Drop or <label style="color: white; cursor: pointer; text-decoration: underline;">Click to Upload<input type="file" id="effectUpload" style="display: none;" onchange="handleFileUpload(event, 'effects')" multiple accept="audio/*"></label></p>
+</div>
+<div id="effects"></div>
+<button class="stop" onclick="stopEffect()">STOP FX</button>
+</div>
+
+<div class="center">
+<div class="mode-toggle">
+<a href="index.html" style="color: var(--muted); text-decoration: none; margin-right: 20px;">← Back to Projects</a>
+<label for="proMode" style="margin: 0;">Pro Mode</label>
+<input type="checkbox" id="proMode">
+</div>
+
+<h2 id="project-title">SOUNDBOARD</h2>
+
+<div class="stepwise-container">
+    <div class="steps-header">
+        <label>STEPWISE FLOW</label>
+        <span id="step-counter" style="font-size: 11px; color: var(--muted);">Step 0 of 0</span>
+    </div>
+    <div id="steps-list" class="steps-list"></div>
+    <div class="step-controls">
+        <button onclick="addStep()">+ ADD STEP</button>
+        <button onclick="nextStep()" style="background: white; color: black; font-weight: bold;">NEXT [ENTER]</button>
+        <button onclick="resetSteps()" class="btn-outline">RESET</button>
+    </div>
+</div>
+
+<textarea id="script" placeholder="[Scene]
+• newspaper opening
+• page 1
+• page 2
+Dialogue continues..."></textarea>
+
+<div class="controls">
+    <div class="vol-control">
+        <label>BGM VOLUME (W / S)</label>
+        <input type="range" id="bgmVol" min="0" max="1" step="0.005" value="0.6">
+        <div class="vol-percent" id="bgmVolDisplay">
+            <input type="number" id="bgmVolPercent" min="0" max="100" value="60">
+            <span>%</span>
+        </div>
+    </div>
+    <div class="vol-control">
+        <label>FX VOLUME (8 / 2)</label>
+        <input type="range" id="fxVol" min="0" max="1" step="0.005" value="1">
+        <div class="vol-percent" id="fxVolDisplay">
+            <input type="number" id="fxVolPercent" min="0" max="100" value="100">
+            <span>%</span>
+        </div>
+    </div>
+    <div>
+        <button class="stop" onclick="stopAll()">STOP ALL</button>
+    </div>
+    <div class="shortcut-hint">Shortcuts (+/- 2.5%): BGM [W/S] | FX [8/2]</div>
+</div>
+</div>
+
+<div class="panel">
+<h2>BGM</h2>
+<div id="fileDropBGM" class="drop-zone" ondrop="handleDrop(event, 'bgm')" ondragover="event.preventDefault()" ondragleave="event.target.classList.remove('drag-over')" ondragenter="event.target.classList.add('drag-over')">
+<p style="text-align: center; color: var(--muted); font-size: 12px; margin: 10px 0;">Drag & Drop or <label style="color: white; cursor: pointer; text-decoration: underline;">Click to Upload<input type="file" id="bgmUpload" style="display: none;" onchange="handleFileUpload(event, 'bgm')" multiple accept="audio/*"></label></p>
+</div>
+<div id="bgms"></div>
+<button class="stop" onclick="stopBGM()">STOP BGM</button>
+</div>
+
+<script>
+let currentBGMBtn = null;
+let currentBGMRow = null;
+let bgmToggling = false;
+let currentBGMSrc = null;
+
+let activeAudios = new Map(); // source -> { audio, btn, row }
+let bgm = new Audio();
+let bgmBase = 0.6;
+let duckTarget = 0.8;
+let duckTimer;
+
+function duck(down=true){
+ clearInterval(duckTimer);
+ duckTimer=setInterval(()=>{
+  if(down && bgm.volume>bgmBase*duckTarget) bgm.volume-=0.02;
+  if(!down && bgm.volume<bgmBase) bgm.volume+=0.02;
+ },30);
+}
+
+// STEPWISE LOGIC
+let steps = [];
+let currentStepIndex = -1;
+const STORAGE_STEPS = "sb_steps";
+
+function saveSteps() {
+    localStorage.setItem(STORAGE_STEPS + (projectId || ""), JSON.stringify(steps));
+}
+
+function loadSteps() {
+    const saved = localStorage.getItem(STORAGE_STEPS + (projectId || ""));
+    if (saved) {
+        steps = JSON.parse(saved);
+        renderSteps();
+    }
+}
+
+function addStep() {
+    steps.push({
+        type: 'play_fx',
+        target: '',
+        duration: 1000,
+        volume: 1.0,
+        loop: false,
+        delay: 0,
+        autoNext: false
+    });
+    renderSteps();
+    saveSteps();
+}
+
+function removeStep(index) {
+    steps.splice(index, 1);
+    if (currentStepIndex >= steps.length) currentStepIndex = steps.length - 1;
+    renderSteps();
+    saveSteps();
+}
+
+function updateStep(index, field, value) {
+    steps[index][field] = value;
+    saveSteps();
+}
+
+function renderSteps() {
+    const list = document.getElementById('steps-list');
+    if (!list) return;
+    list.innerHTML = '';
+    steps.forEach((step, i) => {
+        const item = document.createElement('div');
+        item.className = `step-item ${i === currentStepIndex ? 'active' : ''}`;
+        
+        const indexSpan = document.createElement('span');
+        indexSpan.className = 'index';
+        indexSpan.textContent = i + 1;
+        
+        const typeSelect = document.createElement('select');
+        const types = [
+            {v:'play_fx', l:'Play FX'},
+            {v:'play_bgm', l:'Play BGM'},
+            {v:'pause_bgm', l:'Pause BGM'},
+            {v:'resume_bgm', l:'Resume BGM'},
+            {v:'fade_in_bgm', l:'Fade In BGM'},
+            {v:'fade_out_bgm', l:'Fade Out BGM'},
+            {v:'stop_fx', l:'Stop FX'},
+            {v:'stop_all', l:'Stop All'},
+            {v:'wait', l:'Wait (Delay)'}
+        ];
+        types.forEach(t => {
+            const opt = document.createElement('option');
+            opt.value = t.v; opt.textContent = t.l;
+            if (step.type === t.v) opt.selected = true;
+            typeSelect.appendChild(opt);
+        });
+        typeSelect.onchange = (e) => { updateStep(i, 'type', e.target.value); renderSteps(); };
+
+        const targetSelect = document.createElement('select');
+        targetSelect.style.flex = "1";
+        const needsTarget = ['play_fx', 'play_bgm', 'fade_in_bgm', 'stop_fx'].includes(step.type);
+        if (needsTarget) {
+            const isBGM = step.type.includes('bgm');
+            const files = Object.keys(audioFileStore[isBGM ? 'bgm' : 'effects']);
+            const noneOpt = document.createElement('option');
+            noneOpt.value = ''; noneOpt.textContent = step.type === 'stop_fx' ? '-- All FX --' : '-- Select Audio --';
+            targetSelect.appendChild(noneOpt);
+            files.forEach(f => {
+                const opt = document.createElement('option');
+                opt.value = f; opt.textContent = f;
+                if (step.target === f) opt.selected = true;
+                targetSelect.appendChild(opt);
+            });
+            targetSelect.onchange = (e) => updateStep(i, 'target', e.target.value);
+        } else {
+            targetSelect.style.display = 'none';
+        }
+
+        const durInput = document.createElement('input');
+        durInput.type = 'number'; durInput.placeholder = 'ms'; durInput.style.width = '60px';
+        durInput.value = step.duration || 1000;
+        const needsDur = ['fade_in_bgm', 'fade_out_bgm', 'wait'].includes(step.type);
+        durInput.style.display = needsDur ? 'block' : 'none';
+        durInput.oninput = (e) => updateStep(i, 'duration', parseInt(e.target.value));
+
+        // Looping Toggle
+        const loopLabel = document.createElement('label');
+        loopLabel.textContent = 'Loop';
+        const loopCheck = document.createElement('input');
+        loopCheck.type = 'checkbox';
+        loopCheck.checked = step.loop || false;
+        loopCheck.onchange = (e) => updateStep(i, 'loop', e.target.checked);
+        const loopWrap = document.createElement('div');
+        loopWrap.style.display = ['play_fx', 'play_bgm'].includes(step.type) ? 'flex' : 'none';
+        loopWrap.style.alignItems = 'center';
+        loopWrap.appendChild(loopLabel); loopWrap.appendChild(loopCheck);
+
+        // Delay Input
+        const delayInput = document.createElement('input');
+        delayInput.type = 'number'; delayInput.placeholder = 'Delay'; delayInput.style.width = '50px';
+        delayInput.value = step.delay || 0;
+        delayInput.oninput = (e) => updateStep(i, 'delay', parseInt(e.target.value));
+        const delayLabel = document.createElement('label');
+        delayLabel.textContent = 'Delay';
+        const delayWrap = document.createElement('div');
+        delayWrap.style.display = step.type !== 'wait' ? 'flex' : 'none';
+        delayWrap.style.alignItems = 'center';
+        delayWrap.appendChild(delayLabel); delayWrap.appendChild(delayInput);
+
+        // Auto-Next Toggle
+        const nextLabel = document.createElement('label');
+        nextLabel.textContent = 'Auto';
+        const nextCheck = document.createElement('input');
+        nextCheck.type = 'checkbox';
+        nextCheck.checked = step.autoNext || false;
+        nextCheck.onchange = (e) => updateStep(i, 'autoNext', e.target.checked);
+        const nextWrap = document.createElement('div');
+        nextWrap.style.display = step.type !== 'wait' ? 'flex' : 'none';
+        nextWrap.style.alignItems = 'center';
+        nextWrap.appendChild(nextLabel); nextWrap.appendChild(nextCheck);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'remove-step';
+        removeBtn.textContent = '✕';
+        removeBtn.onclick = () => removeStep(i);
+
+        item.appendChild(indexSpan);
+        item.appendChild(typeSelect);
+        item.appendChild(targetSelect);
+        item.appendChild(durInput);
+        item.appendChild(loopWrap);
+        item.appendChild(delayWrap);
+        item.appendChild(nextWrap);
+        item.appendChild(removeBtn);
+        list.appendChild(item);
+    });
+    
+    document.getElementById('step-counter').textContent = `Step ${currentStepIndex + 1} of ${steps.length}`;
+}
+
+async function nextStep() {
+    if (steps.length === 0) return;
+    currentStepIndex++;
+    if (currentStepIndex >= steps.length) {
+        currentStepIndex = -1;
+        renderSteps();
+        return;
+    }
+    
+    const step = steps[currentStepIndex];
+    renderSteps();
+    
+    const activeItem = document.querySelector('.step-item.active');
+    if (activeItem) activeItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    await executeStep(step);
+    
+    if (step.autoNext) {
+        nextStep();
+    }
+}
+
+function resetSteps() {
+    currentStepIndex = -1;
+    renderSteps();
+}
+
+function fadeAudio(audio, target, duration, cb) {
+    const startVol = audio.volume;
+    const diff = target - startVol;
+    const stepsCount = 20;
+    const interval = (duration || 1000) / stepsCount;
+    const stepAmount = diff / stepsCount;
+    let current = 0;
+    
+    const timer = setInterval(() => {
+        current++;
+        audio.volume = Math.max(0, Math.min(1, startVol + stepAmount * current));
+        if (current >= stepsCount) {
+            clearInterval(timer);
+            audio.volume = target;
+            if (cb) cb();
+        }
+    }, interval);
+}
+
+async function executeStep(step) {
+    if (step.delay > 0) {
+        await new Promise(r => setTimeout(r, step.delay));
+    }
+
+    const bgmSource = audioFileStore.bgm[step.target];
+    const fxSource = audioFileStore.effects[step.target];
+
+    switch (step.type) {
+        case 'play_fx':
+            if (fxSource) {
+                const rows = [...document.getElementById("effects").children];
+                const targetRow = rows.find(r => r.querySelector('span').textContent.includes(step.target.substring(0,10)));
+                const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
+                toggleFX(fxSource, targetBtn, targetRow, step.loop);
+            }
+            break;
+        case 'play_bgm':
+            if (bgmSource) {
+                const rows = [...document.getElementById("bgms").children];
+                const targetRow = rows.find(r => r.querySelector('span').textContent.includes(step.target.substring(0,10)));
+                const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
+                playBGM(bgmSource, targetRow, targetBtn, step.loop);
+            }
+            break;
+        case 'pause_bgm':
+            bgm.pause();
+            if (currentBGMBtn) currentBGMBtn.textContent = "▶";
+            break;
+        case 'resume_bgm':
+            bgm.play();
+            if (currentBGMBtn) currentBGMBtn.textContent = "⏸";
+            break;
+        case 'fade_in_bgm':
+            if (bgmSource && currentBGMSrc !== bgmSource) {
+                 playBGM(bgmSource, null, null);
+                 bgm.volume = 0;
+            }
+            fadeAudio(bgm, bgmVol.value, step.duration);
+            break;
+        case 'fade_out_bgm':
+            fadeAudio(bgm, 0, step.duration, () => {
+                bgm.pause();
+                if (currentBGMBtn) currentBGMBtn.textContent = "▶";
+            });
+            break;
+        case 'stop_fx':
+            if (step.target) {
+                const src = audioFileStore.effects[step.target];
+                if (src && activeAudios.has(src)) {
+                    const data = activeAudios.get(src);
+                    data.audio.pause();
+                    activeAudios.delete(src);
+                    if (data.btn) data.btn.textContent = "▶";
+                    if (data.row) data.row.classList.remove("active");
+                }
+            } else {
+                stopEffect();
+            }
+            break;
+        case 'stop_all':
+            stopAll();
+            break;
+        case 'wait':
+            await new Promise(r => setTimeout(r, step.duration || 1000));
+            break;
+    }
+}
+
+function toggleFX(source, btn, row, loop = false) {
+    if (activeAudios.has(source)) {
+        const data = activeAudios.get(source);
+        data.audio.pause();
+        activeAudios.delete(source);
+        if (btn) btn.textContent = "▶";
+        if (row) row.classList.remove("active");
+        if (activeAudios.size === 0) duck(false);
+        return;
+    }
+    
+    const url = typeof source === 'string' ? source : URL.createObjectURL(source);
+    const audio = new Audio(url);
+    audio.loop = loop;
+    audio.volume = fxVol.value;
+    audio.play();
+    
+    activeAudios.set(source, { audio, btn, row });
+    if (btn) btn.textContent = "⏸";
+    if (row) row.classList.add("active");
+    duck(true);
+    
+    audio.onended = () => {
+        if (!audio.loop) {
+            activeAudios.delete(source);
+            if (btn) btn.textContent = "▶";
+            if (row) row.classList.remove("active");
+            if (activeAudios.size === 0) duck(false);
+        }
+    };
+}
+
+function playBGM(source, row, btn, loop = true) {
+    if (currentBGMSrc === source) {
+        if (bgm.paused) { bgm.play(); if (btn) btn.textContent = "⏸"; } 
+        else { bgm.pause(); if (btn) btn.textContent = "▶"; }
+        return;
+    }
+    if (bgmToggling) return;
+    bgmToggling = true;
+    setTimeout(() => { bgmToggling = false; }, 150);
+    if (currentBGMBtn) currentBGMBtn.textContent = "▶";
+    [...document.getElementById("bgms").children].forEach(x=>x.classList.remove("active"));
+    bgm.pause();
+    
+    const url = typeof source === 'string' ? source : URL.createObjectURL(source);
+    bgm = new Audio(url);
+    bgm.loop = loop;
+    bgm.volume = bgmVol.value;
+    bgm.play();
+    if (row) row.classList.add("active");
+    if (btn) btn.textContent = "⏸";
+    currentBGMBtn = btn; currentBGMRow = row; currentBGMSrc = source;
+}
+
+function stopEffect() { 
+    activeAudios.forEach(data => {
+        data.audio.pause();
+        if (data.btn) data.btn.textContent = "▶";
+        if (data.row) data.row.classList.remove("active");
+    });
+    activeAudios.clear();
+    duck(false); 
+}
+
+function stopBGM() { 
+    bgm.pause(); 
+    if (currentBGMBtn) currentBGMBtn.textContent = "▶"; 
+    if (currentBGMRow) currentBGMRow.classList.remove("active"); 
+}
+
+function stopAll(){ 
+    stopEffect();
+    stopBGM();
+}
+
+bgmVol.oninput = e => { 
+    const v = e.target.value;
+    bgmBase = bgm.volume = v; 
+    bgmVolPercent.value = Math.round(v * 100); 
+    localStorage.setItem(STORAGE_BGM_VOL, v); 
+};
+fxVol.oninput = e => { 
+    const v = e.target.value;
+    activeAudios.forEach(data => data.audio.volume = v);
+    fxVolPercent.value = Math.round(v * 100); 
+    localStorage.setItem(STORAGE_FX_VOL, v); 
+};
+
+script.oninput = () => localStorage.setItem(STORAGE_SCRIPT, script.value);
+proMode.onchange = e => { document.getElementById("bgmVolDisplay").classList.toggle("show", e.target.checked); document.getElementById("fxVolDisplay").classList.toggle("show", e.target.checked); };
+
+document.querySelectorAll("input[type=range]").forEach(s=>{
+ const u=()=>{ s.style.setProperty("--val",(s.value-s.min)/(s.max-s.min)*100+"%"); };
+ s.addEventListener("input",u); u();
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.target.matches('textarea, input, select')) return;
+    const step = 0.025;
+    const key = e.key === " " ? "Space" : e.key;
+
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        nextStep();
+        return;
+    }
+
+    // Volume Controls
+    if (e.key.toLowerCase() === 'w') { bgmVol.value = Math.min(1, parseFloat(bgmVol.value) + step); bgmVol.dispatchEvent(new Event('input')); } 
+    else if (e.key.toLowerCase() === 's') { bgmVol.value = Math.max(0, parseFloat(bgmVol.value) - step); bgmVol.dispatchEvent(new Event('input')); }
+    else if (e.key === '8') { fxVol.value = Math.min(1, parseFloat(fxVol.value) + step); fxVol.dispatchEvent(new Event('input')); }
+    else if (e.key === '2') { fxVol.value = Math.max(0, parseFloat(fxVol.value) - step); fxVol.dispatchEvent(new Event('input')); }
+
+    // Keybound Effects
+    for (const [fileName, bind] of Object.entries(keybinds)) {
+        if (bind === key) {
+            const source = audioFileStore.effects[fileName];
+            if (source) {
+                const rows = [...document.getElementById("effects").children];
+                const targetRow = rows.find(r => r.querySelector('span').textContent.startsWith(fileName.substring(0,10)));
+                const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
+                toggleFX(source, targetBtn, targetRow);
+            }
+        }
+    }
+});
+
+// Load saved data
+const savedScript = localStorage.getItem(STORAGE_SCRIPT);
+if (savedScript) script.value = savedScript;
+const savedBGMVol = localStorage.getItem(STORAGE_BGM_VOL);
+if (savedBGMVol) { bgmVol.value = savedBGMVol; bgmBase = savedBGMVol; bgmVolPercent.value = Math.round(savedBGMVol * 100); bgmVol.dispatchEvent(new Event('input')); }
+const savedFXVol = localStorage.getItem(STORAGE_FX_VOL);
+if (savedFXVol) { fxVol.value = savedFXVol; fxVolPercent.value = Math.round(savedFXVol * 100); fxVol.dispatchEvent(new Event('input')); }
+
+initProject().then(() => {
+    loadSteps();
+});
+
+</script>
+
+</body>
+</html>
