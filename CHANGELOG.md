@@ -9,6 +9,8 @@ The project is pre-1.0: version 0.9.0 is the first release as a product.
 
 ### Added
 
+- Drag-and-drop cue reordering (mouse, pen and touch), alongside the move up/down buttons.
+- Windows installer (`npm run build:installer`): per-user, no admin rights, Start Menu and Desktop shortcuts, uninstaller that keeps show data.
 - Web Audio engine. Effects are decoded once and fire with no lag, background music (BGM) is streamed,
   BGM ducks under effects, and a new BGM track crossfades from the one playing. Fade in and fade out are supported.
 - Per-track volume sliders, saved per project.
@@ -33,6 +35,7 @@ The project is pre-1.0: version 0.9.0 is the first release as a product.
 
 ### Fixed
 
+- The "Playing:" line in show mode no longer goes stale when a playing track is removed.
 - Project names containing HTML were rendered unescaped (cross-site scripting).
 - Keybinding lookup by filename.
 - A duck interval that was never cleared.

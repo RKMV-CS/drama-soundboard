@@ -108,11 +108,11 @@ Done:
 - Installable PWA and desktop launcher (`npm run app`).
 - Project export and import.
 - Single-file packaged build (`npm run build:sea`).
+- Windows installer (`npm run build:installer`, needs NSIS `makensis`) and drag-and-drop cue reorder.
 
 Remaining:
 
-- Code signing and an installer for the packaged build.
-- Drag-and-drop cue reorder (cues currently move up and down).
+- Code signing for the packaged build and installer.
 - MCP server for script-to-cues, planned as a separate server.
 
 ## License

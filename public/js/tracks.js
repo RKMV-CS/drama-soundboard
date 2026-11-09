@@ -222,6 +222,7 @@ export function removeRow(row) {
   const type = row.dataset.type;
   row.remove();
   syncEmpty(type);
+  renderNowPlaying();
 }
 
 export function renderEmptyHints() {

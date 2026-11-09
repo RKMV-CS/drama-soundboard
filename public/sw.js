@@ -1,6 +1,6 @@
 // Classic service worker. Shell is precached; audio is cached on first play (network-first);
 // API is network-first with a cached fallback. Bump CACHE to ship a new shell.
-const CACHE = "sb-shell-v3";
+const CACHE = "sb-shell-v4";
 
 const SHELL = [
   "/",

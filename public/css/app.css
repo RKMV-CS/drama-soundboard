@@ -139,6 +139,13 @@ body.has-board { height: 100vh; display: flex; flex-direction: column; overflow:
 .cue__field--name { flex: 1 1 14rem; }
 .cue__field--note { flex: 1 1 100%; }
 .cue__tools { display: flex; gap: var(--s-2); margin-left: auto; }
+/* touch-action: none so a touch drag on the handle reorders instead of scrolling the list. */
+.cue__grip { cursor: grab; touch-action: none; }
+.cue--dragging { opacity: 0.5; }
+.cue--dragging .cue__grip { cursor: grabbing; }
+/* Inset lines so the indicator stays inside the list, where its scroll edge would clip an outer one. */
+.cue--drop-before { box-shadow: inset 0 3px 0 var(--c-next); }
+.cue--drop-after { box-shadow: inset 0 -3px 0 var(--c-next); }
 
 .cue-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .cue-actions .btn--next { margin-left: auto; }

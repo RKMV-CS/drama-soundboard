@@ -8,7 +8,8 @@
     "app": "node bin/launch.js",
     "dev": "node --watch server.js",
     "test": "node --test",
-    "build:sea": "node scripts/build-sea.js"
+    "build:sea": "node scripts/build-sea.js",
+    "build:installer": "node scripts/build-installer.js"
   },
   "engines": {
     "node": ">=18"
