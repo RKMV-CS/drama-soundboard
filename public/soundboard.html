@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="tape">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>Drama Soundboard</title>
+<script src="js/theme-init.js"></script>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body class="has-board">
+<a class="skip-link" href="#cue-list">Skip to cue list</a>
+
+<header class="app-header">
+  <a class="btn btn--ghost" href="index.html">
+    <svg class="icon" aria-hidden="true"><use href="img/icons.svg#arrow-left"/></svg>Projects
+  </a>
+  <h1 id="project-title" class="app-title">Drama Soundboard</h1>
+  <div class="app-header__tools">
+    <fieldset class="segmented">
+      <legend class="visually-hidden">Theme</legend>
+      <label><input type="radio" name="theme" value="tape"><span>Tape</span></label>
+      <label><input type="radio" name="theme" value="book"><span>Book</span></label>
+    </fieldset>
+    <label class="switch"><input type="checkbox" id="proMode">Pro mode</label>
+  </div>
+</header>
+
+<main class="board">
+  <section class="panel panel--fx" aria-labelledby="fx-title">
+    <div class="panel__head">
+      <h2 id="fx-title" class="panel__title">Effects</h2>
+      <button type="button" id="stopFxBtn" class="btn btn--ghost btn--sm">Stop FX</button>
+    </div>
+    <label id="fileDropEffect" class="dropzone" data-drop="effects">
+      Drop audio or <u>choose files</u>
+      <input type="file" id="effectUpload" class="visually-hidden" accept="audio/*" multiple>
+    </label>
+    <ul id="effects" class="tracks"></ul>
+  </section>
+
+  <section id="cue-list" class="panel panel--cues" aria-labelledby="cues-title" tabindex="-1">
+    <div class="panel__head">
+      <h2 id="cues-title" class="panel__title">Cues</h2>
+      <span id="step-counter" class="counter" aria-live="polite">Cue 0 of 0</span>
+      <button type="button" id="editToggle" class="btn btn--ghost btn--sm" aria-pressed="false">Edit cues</button>
+    </div>
+
+    <div id="next-band" class="next-band is-empty" aria-live="polite"></div>
+
+    <ol id="steps-list" class="cues"></ol>
+
+    <div class="cue-actions">
+      <button type="button" id="addStepBtn" class="btn">
+        <svg class="icon" aria-hidden="true"><use href="img/icons.svg#plus"/></svg>Add cue
+      </button>
+      <button type="button" id="resetBtn" class="btn btn--ghost">Reset</button>
+      <button type="button" id="nextBtn" class="btn btn--next">Next <kbd>Enter</kbd></button>
+    </div>
+
+    <div class="mixer">
+      <div class="slider">
+        <label class="slider__label" for="bgmVol">BGM volume (W / S)</label>
+        <div class="slider__row">
+          <input type="range" id="bgmVol" min="0" max="1" step="0.005" value="0.6">
+          <span id="bgmVolDisplay" class="slider__percent">
+            <input type="number" id="bgmVolPercent" class="input input--compact input--num" min="0" max="100" value="60" aria-label="BGM volume percent">%
+          </span>
+        </div>
+      </div>
+      <div class="slider">
+        <label class="slider__label" for="fxVol">FX volume (8 / 2)</label>
+        <div class="slider__row">
+          <input type="range" id="fxVol" min="0" max="1" step="0.005" value="1">
+          <span id="fxVolDisplay" class="slider__percent">
+            <input type="number" id="fxVolPercent" class="input input--compact input--num" min="0" max="100" value="100" aria-label="FX volume percent">%
+          </span>
+        </div>
+      </div>
+      <button type="button" id="stopAllBtn" class="btn btn--stop">
+        <svg class="icon" aria-hidden="true"><use href="img/icons.svg#stop"/></svg>Stop all
+      </button>
+    </div>
+  </section>
+
+  <section class="panel panel--bgm" aria-labelledby="bgm-title">
+    <div class="panel__head">
+      <h2 id="bgm-title" class="panel__title">Background music</h2>
+      <button type="button" id="stopBgmBtn" class="btn btn--ghost btn--sm">Stop BGM</button>
+    </div>
+    <label id="fileDropBGM" class="dropzone" data-drop="bgm">
+      Drop audio or <u>choose files</u>
+      <input type="file" id="bgmUpload" class="visually-hidden" accept="audio/*" multiple>
+    </label>
+    <ul id="bgms" class="tracks"></ul>
+  </section>
+</main>
+
+<div id="toast-container" class="toasts" aria-live="polite"></div>
+
+<script type="module" src="js/soundboard.js"></script>
+</body>
+</html>

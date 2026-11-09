@@ -130,8 +130,10 @@ test("zip upload rejects non-zip", async () => {
   assert.equal(up.status, 400);
 });
 
-test("static server does not expose db.json or source", { todo: "express.static(__dirname) serves the whole repo; fixed in Phase 2" }, async () => {
-  for (const p of ["/db.json", "/server.js", "/package.json"]) {
+test("static server exposes only public/", async () => {
+  for (const p of ["/db.json", "/server.js", "/package.json", "/utils/db.js", "/test/api.test.js"]) {
     assert.equal((await fetch(base + p)).status, 404, p);
   }
+  assert.equal((await fetch(base + "/index.html")).status, 200);
+  assert.equal((await fetch(base + "/soundboard.html")).status, 200);
 });

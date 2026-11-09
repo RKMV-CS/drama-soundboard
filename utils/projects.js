@@ -77,6 +77,7 @@ async function createProject({ name, description = "" }) {
   const entry = {
     id,
     name,
+    description,
     path: relativePath,
     createdAt: now,
     updatedAt: now,

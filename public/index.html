@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="tape">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<title>Projects - Drama Soundboard</title>
+<script src="js/theme-init.js"></script>
+<link rel="stylesheet" href="css/fonts.css">
+<link rel="stylesheet" href="css/tokens.css">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/components.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="app-header">
+  <h1 class="app-title">Drama Soundboard</h1>
+  <div class="app-header__tools">
+    <fieldset class="segmented">
+      <legend class="visually-hidden">Theme</legend>
+      <label><input type="radio" name="theme" value="tape"><span>Tape</span></label>
+      <label><input type="radio" name="theme" value="book"><span>Book</span></label>
+    </fieldset>
+  </div>
+</header>
+
+<main class="page">
+  <div class="page__head">
+    <h2 class="page__title">Projects</h2>
+    <button type="button" id="newProjectBtn" class="btn btn--primary">
+      <svg class="icon" aria-hidden="true"><use href="img/icons.svg#plus"/></svg>New project
+    </button>
+  </div>
+  <ul id="project-list" class="projects" aria-live="polite">
+    <li class="empty-state">Loading projects</li>
+  </ul>
+</main>
+
+<dialog id="projectDialog" class="dialog" aria-labelledby="dialogTitle">
+  <form id="projectForm" class="dialog__body" method="dialog" novalidate>
+    <h2 id="dialogTitle" class="panel__title">New project</h2>
+    <div class="field">
+      <label class="field__label" for="name">Show name</label>
+      <input type="text" id="name" class="input" placeholder="Class 10 Drama" autocomplete="off" required>
+    </div>
+    <div class="field">
+      <label class="field__label" for="description">Description (optional)</label>
+      <textarea id="description" class="input" rows="3" autocomplete="off"></textarea>
+    </div>
+    <p id="form-error" class="form-error" role="alert" hidden></p>
+    <div class="dialog__actions">
+      <button type="button" id="cancelBtn" class="btn btn--ghost">Cancel</button>
+      <button type="submit" id="createBtn" class="btn btn--primary">Create project</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module" src="js/projects.js"></script>
+</body>
+</html>

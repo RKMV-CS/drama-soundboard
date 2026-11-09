@@ -14,7 +14,7 @@ const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const app = express();
 
 app.use(express.json());
-app.use(express.static(__dirname));
+app.use(express.static(path.join(__dirname, "public")));
 
 const upload = multer({
   dest: UPLOADS_DIR,

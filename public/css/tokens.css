@@ -1,0 +1,109 @@
+/* Design tokens. Components read ONLY these semantic names.
+   A theme swaps values; it never adds components.
+   Themes: "tape" (default) and "book". Selected by <html data-theme>. */
+
+:root,
+:root[data-theme="tape"] {
+  color-scheme: dark;
+
+  /* surfaces */
+  --c-bg: #0d0d0f;            /* stage floor */
+  --c-surface: #1c1c20;       /* panels */
+  --c-surface-2: #26262c;     /* raised rows, inputs */
+  --c-rule: #34343b;          /* hairlines */
+
+  /* text */
+  --c-text: #f2efe6;
+  --c-muted: #a8a59b;
+
+  /* category marks */
+  --c-fx: #ff6b2c;            /* orange tape */
+  --c-bgm: #35c2ff;           /* ice-blue tape */
+  --c-on-mark: #0d0d0f;       /* text on a category fill */
+
+  /* the one next-cue colour; used for nothing else */
+  --c-next: #ffd400;
+  --c-on-next: #0d0d0f;
+
+  --c-danger: #ff6a6a;
+  --c-focus: #f2efe6;
+  --c-selection: #f2efe640;
+
+  /* type */
+  --font-ui: "Barlow", system-ui, "Segoe UI", sans-serif;
+  --font-display: "Barlow Condensed", "Barlow", system-ui, sans-serif;
+  --font-mono: "Barlow Condensed", "Barlow", system-ui, sans-serif; /* cue numbers */
+  --display-tracking: 0.06em;
+  --display-case: uppercase;
+
+  /* shape */
+  --radius: 4px;
+  --tape-skew: -10deg;        /* tape marks are cut at an angle */
+  --next-fill: var(--c-next);
+  --next-border: var(--c-next);
+  --next-ink: var(--c-on-next);
+  --next-num-size: 3.75rem;
+  --next-what-size: 1.5rem;
+  --next-what-bg: transparent;
+  --next-what-ink: var(--c-on-next);
+}
+
+:root[data-theme="book"] {
+  color-scheme: dark;
+
+  --c-bg: #1a1b1e;            /* charcoal page */
+  --c-surface: #222327;
+  --c-surface-2: #2b2c31;
+  --c-rule: #3d3e44;
+
+  --c-text: #e8e4d8;          /* chalk */
+  --c-muted: #a1a3a8;         /* pencil grey */
+
+  --c-fx: #e8e4d8;            /* FX flag: chalk outline */
+  --c-bgm: #ff7eb6;           /* BGM flag: pink highlighter */
+  --c-on-mark: #1a1b1e;
+
+  --c-next: #d7f25c;          /* lime highlighter */
+  --c-on-next: #1a1b1e;
+
+  --c-danger: #ff7a7a;
+  --c-focus: #e8e4d8;         /* chalk: lime stays reserved for the next cue */
+  --c-selection: #e8e4d840;
+
+  --font-ui: "Source Sans 3", system-ui, "Segoe UI", sans-serif;
+  --font-display: "Source Sans 3", system-ui, sans-serif;
+  --font-mono: "Courier Prime", ui-monospace, "Cascadia Mono", monospace;
+  --display-tracking: 0.02em;
+  --display-case: none;
+
+  --radius: 2px;
+  --tape-skew: 0deg;
+  --next-fill: transparent;   /* the highlighter marks the text, not the row */
+  --next-border: var(--c-rule);
+  --next-ink: var(--c-text);
+  --next-num-size: 1.75rem;
+  --next-what-size: 1.25rem;
+  --next-what-bg: var(--c-next);  /* highlighter stripe behind the cue text */
+  --next-what-ink: var(--c-on-next);
+}
+
+:root {
+  /* spacing scale (4px base) */
+  --s-1: 0.25rem;
+  --s-2: 0.5rem;
+  --s-3: 0.75rem;
+  --s-4: 1rem;
+  --s-5: 1.5rem;
+  --s-6: 2rem;
+
+  /* type scale, fixed rem (product UI) */
+  --t-xs: 0.75rem;   /* 12px: smallest functional text */
+  --t-sm: 0.875rem;  /* 14px */
+  --t-md: 1rem;      /* 16px */
+  --t-lg: 1.25rem;   /* 20px */
+  --t-xl: 1.75rem;   /* 28px */
+
+  --hit: 2.75rem;    /* 44px minimum target */
+  --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --dur: 160ms;
+}

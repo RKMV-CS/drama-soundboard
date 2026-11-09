@@ -7,3 +7,10 @@ graphify-out/
 .DS_Store
 db.json.tmp
 db.json
+
+.impeccable/mocks/
+.impeccable/review/
+.impeccable/build/
+.playwright-mcp/
+e2e-*.png
+.impeccable/questions/

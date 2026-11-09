@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-09T00:00:00Z",
+  "title": "Design System: Drama Soundboard",
+  "extensions": {
+    "colorMeta": {
+      "tape-bg": { "role": "neutral", "displayName": "Stage Floor", "canonical": "#0d0d0f", "tonalRamp": ["#0d0d0f", "#1c1c20", "#26262c", "#34343b", "#55555d", "#a8a59b", "#d6d3ca", "#f2efe6"] },
+      "tape-next": { "role": "primary", "displayName": "Next-Cue Yellow", "canonical": "#ffd400", "tonalRamp": ["#3d3200", "#665400", "#8f7600", "#b89900", "#e0ba00", "#ffd400", "#ffe366", "#fff3b8"] },
+      "tape-fx": { "role": "secondary", "displayName": "Orange Tape", "canonical": "#ff6b2c", "tonalRamp": ["#3d1500", "#662400", "#8f3300", "#c24a14", "#ff6b2c", "#ff8f5c", "#ffb78f", "#ffdcc7"] },
+      "tape-bgm": { "role": "secondary", "displayName": "Ice-Blue Tape", "canonical": "#35c2ff", "tonalRamp": ["#00293d", "#004a70", "#0072a8", "#1a9ad6", "#35c2ff", "#70d3ff", "#a8e4ff", "#d6f3ff"] },
+      "book-bg": { "role": "neutral", "displayName": "Charcoal Page", "canonical": "#1a1b1e", "tonalRamp": ["#1a1b1e", "#222327", "#2b2c31", "#3d3e44", "#6a6b70", "#a1a3a8", "#cfcbbf", "#e8e4d8"] },
+      "book-next": { "role": "primary", "displayName": "Lime Highlighter", "canonical": "#d7f25c", "tonalRamp": ["#2b3300", "#4a5a00", "#6e8200", "#97b300", "#bad93a", "#d7f25c", "#e6f98f", "#f3fcc7"] },
+      "book-bgm": { "role": "secondary", "displayName": "Pink Highlighter", "canonical": "#ff7eb6", "tonalRamp": ["#3d0020", "#6e003a", "#a31a5c", "#d6468a", "#ff7eb6", "#ff9fc9", "#ffc2dd", "#ffe3ee"] },
+      "book-fx": { "role": "secondary", "displayName": "Chalk Outline", "canonical": "#e8e4d8", "tonalRamp": ["#3d3e44", "#6a6b70", "#a1a3a8", "#cfcbbf", "#e8e4d8", "#f2efe6", "#f8f6f0", "#fcfbf8"] }
+    },
+    "typographyMeta": {
+      "tape-display": { "displayName": "Tape Display", "purpose": "Uppercase condensed headings, panel titles, next-cue text and numerals in Tape." },
+      "tape-body": { "displayName": "Tape UI", "purpose": "All interface text in Tape." },
+      "book-display": { "displayName": "Book Display", "purpose": "Sentence-case headings in Book." },
+      "book-body": { "displayName": "Book UI", "purpose": "All interface text in Book." },
+      "book-mono": { "displayName": "Book Typewriter", "purpose": "Cue numbers and file names in Book." },
+      "label": { "displayName": "Label", "purpose": "12px field labels, flags, state text. The text floor." }
+    },
+    "shadows": [],
+    "motion": [
+      { "name": "ease", "value": "cubic-bezier(0.16, 1, 0.3, 1)", "purpose": "Ease-out for all state changes and the toast entrance." },
+      { "name": "dur", "value": "160ms", "purpose": "Background and border colour transitions on buttons. Reduced-motion collapses all durations to 1ms." },
+      { "name": "toast-in", "value": "200ms translateY(0.5rem) + fade", "purpose": "Only entrance animation in the product." }
+    ],
+    "breakpoints": [
+      { "name": "tablet", "value": "1100px" },
+      { "name": "phone", "value": "700px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Default Button",
+      "kind": "button",
+      "refersTo": "button",
+      "description": "Standard 44px action on a raised surface.",
+      "html": "<button class=\"ds-btn\">Add effect</button>",
+      "css": ".ds-btn { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; background: var(--c-surface-2, #26262c); color: var(--c-text, #f2efe6); border: 1px solid var(--c-rule, #34343b); border-radius: var(--radius, 4px); font: 600 1rem/1 var(--font-ui, Barlow, sans-serif); cursor: pointer; transition: border-color 160ms cubic-bezier(0.16,1,0.3,1); } .ds-btn:hover { border-color: var(--c-text, #f2efe6); } .ds-btn:focus-visible { outline: 2px solid var(--c-focus, #f2efe6); outline-offset: 2px; }"
+    },
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Text-colour fill; one per view for the main non-cue action.",
+      "html": "<button class=\"ds-btn-primary\">Save</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; background: var(--c-text, #f2efe6); color: var(--c-bg, #0d0d0f); border: 1px solid var(--c-text, #f2efe6); border-radius: var(--radius, 4px); font: 600 1rem/1 var(--font-ui, Barlow, sans-serif); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-primary:hover { background: var(--c-bg, #0d0d0f); color: var(--c-text, #f2efe6); } .ds-btn-primary:focus-visible { outline: 2px solid var(--c-focus, #f2efe6); outline-offset: 2px; }"
+    },
+    {
+      "name": "Next Button",
+      "kind": "button",
+      "refersTo": "button-next",
+      "description": "The single NEXT action; the only button in the next-cue colour.",
+      "html": "<button class=\"ds-btn-next\">Next</button>",
+      "css": ".ds-btn-next { display: inline-flex; align-items: center; min-height: 56px; padding: 0 24px; background: var(--c-next, #ffd400); color: var(--c-on-next, #0d0d0f); border: 1px solid var(--c-next, #ffd400); border-radius: var(--radius, 4px); font: 700 1.25rem/1 var(--font-display, 'Barlow Condensed', sans-serif); letter-spacing: var(--display-tracking, 0.06em); text-transform: var(--display-case, uppercase); cursor: pointer; transition: background-color 160ms cubic-bezier(0.16,1,0.3,1); } .ds-btn-next:hover { background: var(--c-on-next, #0d0d0f); color: var(--c-next, #ffd400); } .ds-btn-next:focus-visible { outline: 2px solid var(--c-focus, #f2efe6); outline-offset: 2px; }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "field",
+      "description": "44px field with a 12px muted label.",
+      "html": "<label class=\"ds-field\"><span class=\"ds-field-label\">Cue label</span><input class=\"ds-input\" value=\"Thunder\"></label>",
+      "css": ".ds-field { display: flex; flex-direction: column; gap: 4px; } .ds-field-label { font-size: 0.75rem; font-weight: 600; color: var(--c-muted, #a8a59b); } .ds-input { min-height: 44px; padding: 0 12px; background: var(--c-bg, #0d0d0f); color: var(--c-text, #f2efe6); border: 1px solid var(--c-rule, #34343b); border-radius: var(--radius, 4px); font: 400 1rem/1.2 var(--font-ui, Barlow, sans-serif); } .ds-input:hover { border-color: var(--c-muted, #a8a59b); } .ds-input:focus-visible { border-color: var(--c-focus, #f2efe6); outline: 2px solid var(--c-focus, #f2efe6); outline-offset: 0; }"
+    },
+    {
+      "name": "Track Row",
+      "kind": "custom",
+      "refersTo": "track-row",
+      "description": "Sound row with category mark; playing state uses outline, text and pause icon.",
+      "html": "<div class=\"ds-track\" style=\"--mark: var(--c-fx, #ff6b2c)\"><span class=\"ds-tape\"></span><span class=\"ds-track-name\">thunder_roll.mp3</span><span class=\"ds-track-state\">Playing</span></div>",
+      "css": ".ds-track { display: flex; align-items: center; gap: 12px; min-height: 52px; padding: 4px 8px; background: var(--c-surface-2, #26262c); border-radius: var(--radius, 4px); outline: 1px solid var(--mark); outline-offset: -1px; } .ds-tape { flex: none; width: 10px; height: 28px; background: var(--mark); transform: skewX(var(--tape-skew, -10deg)); } .ds-track-name { flex: 1; font: 400 0.875rem/1.4 var(--font-mono, Barlow, sans-serif); color: var(--c-text, #f2efe6); } .ds-track-state { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--mark); }"
+    },
+    {
+      "name": "Cue Row (next)",
+      "kind": "custom",
+      "refersTo": "cue-row",
+      "description": "A cue in the list; the next one carries the next-colour outline and numeral.",
+      "html": "<div class=\"ds-cue\"><span class=\"ds-cue-num\">12</span><span class=\"ds-cue-action\">Fire Thunder</span></div>",
+      "css": ".ds-cue { display: grid; grid-template-columns: 2.5rem 1fr; align-items: center; column-gap: 12px; min-height: 52px; padding: 4px 8px; background: var(--c-surface-2, #26262c); border-radius: var(--radius, 4px); outline: 1px solid var(--c-next, #ffd400); outline-offset: -1px; } .ds-cue-num { font: 700 1.25rem/1 var(--font-mono, Barlow, sans-serif); color: var(--c-next, #ffd400); text-align: right; } .ds-cue-action { font-weight: 700; }"
+    },
+    {
+      "name": "Next Band",
+      "kind": "custom",
+      "refersTo": "next-band",
+      "description": "Signature element: the next cue, the largest object on screen.",
+      "html": "<div class=\"ds-next-band\"><span class=\"ds-next-num\">12</span><span class=\"ds-next-what\"><mark>Fire Thunder</mark></span></div>",
+      "css": ".ds-next-band { display: grid; grid-template-columns: auto 1fr; align-items: center; column-gap: 16px; padding: 16px; background: var(--next-fill, #ffd400); color: var(--next-ink, #0d0d0f); border: 1px solid var(--next-border, #ffd400); border-radius: var(--radius, 4px); } .ds-next-num { font: 700 var(--next-num-size, 3.75rem)/0.9 var(--font-mono, 'Barlow Condensed', sans-serif); } .ds-next-what { font: 700 var(--next-what-size, 1.5rem)/1.2 var(--font-display, 'Barlow Condensed', sans-serif); letter-spacing: var(--display-tracking, 0.06em); text-transform: var(--display-case, uppercase); } .ds-next-what mark { background: var(--next-what-bg, transparent); color: var(--next-what-ink, inherit); padding: 0 4px; }"
+    },
+    {
+      "name": "Segmented Control",
+      "kind": "chip",
+      "refersTo": "button",
+      "description": "Theme switch; checked segment fills with text colour.",
+      "html": "<div class=\"ds-seg\"><span class=\"ds-seg-on\">Tape</span><span>Book</span></div>",
+      "css": ".ds-seg { display: inline-flex; gap: 4px; } .ds-seg span { display: inline-flex; align-items: center; min-height: 36px; padding: 0 12px; font-size: 0.875rem; font-weight: 600; color: var(--c-muted, #a8a59b); border: 1px solid var(--c-rule, #34343b); border-radius: var(--radius, 4px); } .ds-seg .ds-seg-on { background: var(--c-text, #f2efe6); color: var(--c-bg, #0d0d0f); border-color: var(--c-text, #f2efe6); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Call Sheet in the Dark",
+    "overview": "One component set, two worlds. The operator works in a dim wing on a laptop or tablet, so both themes are dark, flat and hairline-ruled, and both exist to make one thing unmistakable: the cue that fires next. Every sound carries its category the way a stagehand marks the floor, by a mark of material colour, never by decoration.\n\nSpike Tape (default) is stage-floor black with matte gaffer-tape category marks cut at an angle: orange for effects, ice blue for BGM. Prompt Book is a charcoal page with chalk text, pencil-grey notes, Courier Prime cue numbers and file names, a filled pink BGM flag and a lime highlighter stripe behind the next cue's text.\n\nA theme only swaps token values and a few type tokens. Components read semantic names and never a theme-specific one.",
+    "keyCharacteristics": [
+      "Flat fills and 1px hairline rules; the board is a module grid whose gaps are rule colour.",
+      "One reserved signal colour per theme, used only for the next cue.",
+      "Category is a mark (tape strip or labelled flag), never the row's fill.",
+      "Product UI: fixed rem type, 44px targets, no decorative motion.",
+      "Offline: fonts self-hosted in public/fonts, icons drawn SVG from img/icons.svg."
+    ],
+    "rules": [
+      { "name": "The Next-Only Rule", "body": "The next-cue colour appears on the next band, the next cue row (outline and numeral), and the NEXT button. Never for focus, selection, hover, success or decoration.", "section": "colors" },
+      { "name": "The Mark Not Fill Rule", "body": "Category colour marks a row (strip, flag, playing outline, progress fill); rows stay on neutral surfaces.", "section": "colors" },
+      { "name": "The Chalk Focus Rule", "body": "The focus ring is the text colour in both themes, so it cannot be mistaken for the next cue.", "section": "colors" },
+      { "name": "The Twelve Pixel Floor Rule", "body": "No text under 0.75rem.", "section": "typography" },
+      { "name": "The Two-Voice Rule", "body": "Display face for headings and numerals, UI face for everything else, mono face only for cue numbers and file names.", "section": "typography" },
+      { "name": "The Flat-Always Rule", "body": "State is shown by border, outline or fill swap, never by shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do read colour only from semantic tokens; add a theme by swapping values, not by adding components.",
+      "Do reserve the next-cue colour for the next cue, its row, numeral and button.",
+      "Do keep 44px targets, 12px minimum text, AA contrast, and the 2px chalk focus ring with 2px offset.",
+      "Do show playing as outline plus state text plus pause icon, so it never relies on colour alone.",
+      "Do use 160ms ease-out for state changes; honour `prefers-reduced-motion`.",
+      "Do use icons from `img/icons.svg` and self-hosted fonts from `public/fonts`.",
+      "Do theme scrollbars, selection, caret and accent colour from tokens."
+    ],
+    "donts": [
+      "Don't use the next-cue colour for focus, hover, success, category or decoration.",
+      "Don't add kickers, eyebrows or small uppercase lead-in labels above headings.",
+      "Don't use coloured side borders thicker than 1px, gradients, glows, text shadows or offset shadows.",
+      "Don't use emoji, glyph or icon-font icons, or load fonts or assets from a network.",
+      "Don't fill whole rows with a category colour; category is a mark.",
+      "Don't put theme conditionals in components beyond the existing mark and cue-grid rules in the page stylesheet."
+    ]
+  }
+}
