@@ -46,7 +46,7 @@ test("every css, js, font and img file is precached, so no feature breaks offlin
   const cached = new Set([...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]));
   for (const dir of ["css", "js", "fonts", "img"]) {
     for (const file of fs.readdirSync(path.join(PUBLIC, dir))) {
-      if (file.endsWith(".txt")) continue; // fonts/README.txt
+      if (file.endsWith(".txt") || file === "package.json") continue; // documentation and Node module metadata
       assert.ok(cached.has(`/${dir}/${file}`), `not precached: /${dir}/${file}`);
     }
   }
