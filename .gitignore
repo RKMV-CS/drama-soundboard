@@ -14,3 +14,4 @@ db.json
 .playwright-mcp/
 e2e-*.png
 .impeccable/questions/
+dist/

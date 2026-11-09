@@ -1,5 +1,6 @@
 import { initThemeSwitch } from "./theme.js";
 import { showToast } from "./toast.js";
+import { importProject } from "./api.js";
 
 initThemeSwitch();
 
@@ -18,6 +19,8 @@ const confirmText = document.getElementById("confirmText");
 const confirmError = document.getElementById("confirm-error");
 const confirmCancelBtn = document.getElementById("confirmCancelBtn");
 const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+const importBtn = document.getElementById("importProjectBtn");
+const importFile = document.getElementById("importFile");
 
 let editing = null; // { project, row } while renaming, null when creating
 let pendingDelete = null; // { project, row } while the confirm dialog is open
@@ -41,6 +44,10 @@ function renderProject(project) {
   const meta = el("span", "project__meta", "Updated " + new Date(project.updatedAt).toLocaleDateString());
   const open = el("a", "btn", "Open");
   open.href = "soundboard.html?project=" + encodeURIComponent(project.id);
+  const exportBtn = el("button", "btn btn--sm btn--ghost", "Export");
+  exportBtn.type = "button";
+  exportBtn.setAttribute("aria-label", `Export ${project.name}`);
+  exportBtn.addEventListener("click", () => downloadExport(project));
   const rename = el("button", "btn btn--sm btn--ghost", "Rename");
   rename.type = "button";
   rename.addEventListener("click", () => openRename(project, li, rename));
@@ -48,9 +55,19 @@ function renderProject(project) {
   remove.type = "button";
   remove.addEventListener("click", () => openDelete(project, li, remove));
   const actions = el("div", "project__actions");
-  actions.append(open, rename, remove);
+  actions.append(open, exportBtn, rename, remove);
   li.append(info, meta, actions);
   return li;
+}
+
+// A temporary link click lets the browser handle the zip download natively.
+function downloadExport(project) {
+  const link = document.createElement("a");
+  link.href = `/projects/${encodeURIComponent(project.id)}/export`;
+  link.download = "";
+  document.body.append(link);
+  link.click();
+  link.remove();
 }
 
 function renderEmpty() {
@@ -215,6 +232,24 @@ confirmDeleteBtn.addEventListener("click", async () => {
   } finally {
     confirmDeleteBtn.disabled = false;
     confirmDeleteBtn.textContent = "Delete project";
+  }
+});
+
+importBtn.addEventListener("click", () => importFile.click());
+
+importFile.addEventListener("change", async () => {
+  const file = importFile.files[0];
+  if (!file) return;
+  importBtn.disabled = true;
+  try {
+    const project = await importProject(file);
+    await loadProjects();
+    showToast(`Imported ${project.name}`, "success");
+  } catch (err) {
+    showToast(err.message, "error");
+  } finally {
+    importFile.value = "";
+    importBtn.disabled = false;
   }
 });
 

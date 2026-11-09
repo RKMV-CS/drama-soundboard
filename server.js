@@ -6,15 +6,17 @@ const path = require("path");
 const db = require("./utils/db");
 const projects = require("./utils/projects");
 const zip = require("./utils/zip");
+const { staticAssets } = require("./utils/assets");
 
 const { DATA_DIR } = require("./utils/config");
+const { version: VERSION } = require("./package.json");
 
 const PORT = process.env.PORT || 3000;
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const app = express();
 
 app.use(express.json({ limit: "1mb" }));
-app.use(express.static(path.join(__dirname, "public")));
+app.use(staticAssets(path.join(__dirname, "public")));
 
 const upload = multer({
   dest: UPLOADS_DIR,
@@ -34,7 +36,7 @@ function asyncHandler(fn) {
 }
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, version: VERSION });
 });
 
 app.get(
@@ -57,6 +59,26 @@ app.post(
       description: typeof description === "string" ? description.trim() : "",
     });
     res.status(201).json({ project: created });
+  })
+);
+
+// Before any /projects/:id route; the zip is read from multer's temp upload.
+app.post(
+  "/projects/import",
+  upload.single("file"),
+  asyncHandler(async (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ error: "project zip file is required (field: file)" });
+    }
+    try {
+      const project = await projects.importProject(req.file.path);
+      res.status(201).json({ project });
+    } catch (err) {
+      if (!err.status) throw err;
+      res.status(err.status).json({ error: err.message });
+    } finally {
+      await fs.rm(req.file.path, { force: true }).catch(() => {});
+    }
   })
 );
 
@@ -121,13 +143,7 @@ app.put(
   "/projects/:id/steps",
   asyncHandler(async (req, res) => {
     const steps = (req.body || {}).steps;
-    const valid =
-      Array.isArray(steps) &&
-      steps.length <= 500 &&
-      steps.every(
-        (s) => s && typeof s === "object" && !Array.isArray(s) && typeof s.type === "string" && s.type.length <= 40
-      );
-    if (!valid) {
+    if (!projects.isValidSteps(steps)) {
       return res.status(400).json({ error: "steps must be an array of up to 500 objects, each with a string type of at most 40 characters" });
     }
     const saved = await projects.setSteps(req.params.id, steps);
@@ -267,6 +283,21 @@ app.get(
       return res.status(404).json({ error: "No archive.zip for this project" });
     }
     res.download(resolved.paths.archivePath, "archive.zip");
+  })
+);
+
+app.get(
+  "/projects/:id/export",
+  asyncHandler(async (req, res) => {
+    const exported = await projects.exportProject(req.params.id);
+    if (!exported) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    res.set({
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${exported.slug}.dramashow.zip"`,
+    });
+    res.send(exported.buffer);
   })
 );
 

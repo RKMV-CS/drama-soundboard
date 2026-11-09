@@ -1,6 +1,6 @@
 // Classic service worker. Shell is precached; audio is cached on first play (network-first);
 // API is network-first with a cached fallback. Bump CACHE to ship a new shell.
-const CACHE = "sb-shell-v2";
+const CACHE = "sb-shell-v3";
 
 const SHELL = [
   "/",
@@ -122,6 +122,8 @@ self.addEventListener("fetch", (e) => {
   const url = new URL(req.url);
   if (req.method !== "GET" || url.origin !== self.location.origin) return;
   if (url.pathname === "/health") return;
+  // A project export must always be built fresh: never cache it, never answer it from the cache offline.
+  if (url.pathname.endsWith("/export")) return;
   if (req.mode === "navigate") return e.respondWith(navigate(req, url));
   if (AUDIO.test(url.pathname)) return e.respondWith(audio(req));
   if (url.pathname.startsWith("/projects")) return e.respondWith(api(req));

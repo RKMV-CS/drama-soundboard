@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require("uuid");
 const db = require("./db");
 const { slugify, uniqueSlug } = require("./slug");
 const zip = require("./zip");
+const AdmZip = require("adm-zip");
 
 const { DATA_DIR } = require("./config");
 
@@ -283,8 +284,121 @@ async function setSteps(id, steps) {
   return steps;
 }
 
+const EXPORT_FORMAT = "drama-soundboard-project";
+const MAX_IMPORT_AUDIOS = 500;
+const MAX_IMPORT_BYTES = 1024 * 1024 * 1024;
+
+function isValidSteps(steps) {
+  return (
+    Array.isArray(steps) &&
+    steps.length <= 500 &&
+    steps.every(
+      (s) => s && typeof s === "object" && !Array.isArray(s) && typeof s.type === "string" && s.type.length <= 40
+    )
+  );
+}
+
+async function exportProject(id) {
+  const resolved = await resolveProject(id);
+  if (!resolved) return null;
+  const { slug, paths } = resolved;
+  const meta = await loadProjectJson(slug);
+
+  const archive = new AdmZip();
+  const manifest = {
+    format: EXPORT_FORMAT,
+    version: 1,
+    name: meta.name,
+    description: meta.description ?? "",
+    exportedAt: new Date().toISOString(),
+  };
+  archive.addFile("manifest.json", Buffer.from(JSON.stringify(manifest, null, 2)));
+  archive.addFile("project.json", Buffer.from(JSON.stringify(meta, null, 2)));
+  const steps = await getSteps(id);
+  if (steps && steps.length) {
+    archive.addFile("steps.json", Buffer.from(JSON.stringify(steps, null, 2)));
+  }
+  for (const filename of await zip.listAudioFiles(paths.audiosDir)) {
+    archive.addLocalFile(path.join(paths.audiosDir, filename), "audios/");
+  }
+  return { slug, buffer: archive.toBuffer() };
+}
+
+// Validates the whole zip before creating anything, so bad input leaves no project behind.
+async function importProject(zipPath) {
+  const badRequest = (message) => Object.assign(new Error(message), { status: 400 });
+
+  let archive;
+  try {
+    archive = new AdmZip(zipPath);
+  } catch {
+    throw badRequest("Not a valid zip file");
+  }
+
+  const readJson = (entryName) => {
+    const entry = archive.getEntry(entryName);
+    if (!entry) return undefined;
+    try {
+      return JSON.parse(entry.getData().toString("utf8"));
+    } catch {
+      return undefined;
+    }
+  };
+
+  const manifest = readJson("manifest.json");
+  if (!manifest || manifest.format !== EXPORT_FORMAT || manifest.version !== 1) {
+    throw badRequest("manifest.json missing or not a drama-soundboard project export (version 1)");
+  }
+
+  const audioByName = new Map();
+  for (const entry of archive.getEntries()) {
+    if (entry.isDirectory || !entry.entryName.startsWith("audios/")) continue;
+    const filename = path.basename(entry.entryName);
+    if (filename.startsWith(".") || !zip.isAudioFile(filename) || audioByName.has(filename)) continue;
+    audioByName.set(filename, entry);
+  }
+  if (audioByName.size > MAX_IMPORT_AUDIOS) {
+    throw badRequest(`Too many audio files (max ${MAX_IMPORT_AUDIOS})`);
+  }
+  const totalBytes = [...audioByName.values()].reduce((sum, e) => sum + e.header.size, 0);
+  if (totalBytes > MAX_IMPORT_BYTES) {
+    throw badRequest("Audio files exceed the 1 GiB import limit");
+  }
+
+  const projectMeta = readJson("project.json") ?? {};
+  const steps = readJson("steps.json");
+  const trimmedName = typeof manifest.name === "string" ? manifest.name.trim() : "";
+  const name = trimmedName.length >= 1 && trimmedName.length <= 100 ? trimmedName : "Imported show";
+  const description = typeof manifest.description === "string" ? manifest.description.trim().slice(0, 1000) : "";
+
+  const created = await createProject({ name, description });
+  try {
+    const { audiosDir } = projectPaths(created.slug);
+    for (const [filename, entry] of audioByName) {
+      await fs.writeFile(path.join(audiosDir, filename), entry.getData());
+    }
+
+    const meta = await loadProjectJson(created.slug);
+    meta.audioFiles = [...audioByName.keys()].sort((a, b) => a.localeCompare(b));
+    const categories = projectMeta.categories && typeof projectMeta.categories === "object" ? projectMeta.categories : {};
+    meta.categories = Object.fromEntries(
+      Object.entries(categories).filter(([f, type]) => audioByName.has(f) && typeof type === "string")
+    );
+    await saveProjectJson(created.slug, meta);
+
+    if (isValidSteps(steps)) await setSteps(created.id, steps);
+    return created;
+  } catch (err) {
+    await deleteProject(created.id).catch(() => {});
+    throw err;
+  }
+}
+
 module.exports = {
   REPO_ROOT,
+  exportProject,
+  importProject,
+  isValidSteps,
   PROJECTS_ROOT,
   projectPaths,
   createProject,

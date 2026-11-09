@@ -30,7 +30,7 @@ Set as environment variables before starting the server.
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3000` | HTTP port. |
-| `DRAMA_DATA_DIR` | repo root | Where project data is stored (see `utils/config.js`). |
+| `DRAMA_DATA_DIR` | repo root (source checkout), per-user folder (packaged build) | Where project data is stored (see `utils/config.js`). |
 
 ## Project layout
 
@@ -63,6 +63,23 @@ uploads/                     temporary upload area
 
 `projects/` and `uploads/` are git-ignored.
 
+A source checkout keeps this data in the repo root. A packaged build (see below) uses a per-user folder instead: Windows `%APPDATA%\Drama Soundboard`, macOS `~/Library/Application Support/Drama Soundboard`, Linux `$XDG_DATA_HOME` or `~/.local/share/drama-soundboard`. Setting `DRAMA_DATA_DIR` overrides both.
+
+## Export and import
+
+- **Export:** the Export button on a project row on the projects page downloads `<name>.dramashow.zip`.
+- **Import:** the Import project control on the projects page creates a new project from a `.dramashow.zip` file.
+
+The zip holds `manifest.json`, `project.json`, `steps.json` and `audios/`.
+
+## Build a single-file app
+
+```bash
+npm run build:sea
+```
+
+This writes `dist/drama-soundboard-<version>-<platform>[.exe]`, about 88 MB. The app needs no Node.js install, and the UI is embedded in the file. Double-click it to open the app in its own window; Google Chrome or Microsoft Edge must be installed. The build is unsigned, so Windows SmartScreen will warn on first run.
+
 ## Themes
 
 **Tape** (default) and **Book** are chosen with the Theme switch in the header and remembered in the browser (localStorage key `sb_theme`). Design rules are in `DESIGN.md`; product context is in `PRODUCT.md`.
@@ -85,9 +102,17 @@ Runs the `node:test` suites in `test/`. No browser is needed. CI (`.github/workf
 
 ## Roadmap
 
-- Per-track volume.
-- Show mode.
-- PWA and desktop launcher.
+Done:
+
+- Per-track volume and show mode.
+- Installable PWA and desktop launcher (`npm run app`).
+- Project export and import.
+- Single-file packaged build (`npm run build:sea`).
+
+Remaining:
+
+- Code signing and an installer for the packaged build.
+- Drag-and-drop cue reorder (cues currently move up and down).
 - MCP server for script-to-cues, planned as a separate server.
 
 ## License

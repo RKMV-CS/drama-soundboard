@@ -6,7 +6,10 @@ const os = require("node:os");
 const path = require("node:path");
 const readline = require("node:readline");
 
-const SERVER = path.join(__dirname, "..", "server.js");
+const { isPackaged } = require("../utils/config");
+
+// A packaged build is one executable: it runs itself again with --server instead of "node server.js".
+const SERVER_ARGS = isPackaged() ? ["--server"] : [path.join(__dirname, "..", "server.js")];
 // Dedicated profile so the window opens on its own and does not join an open browser.
 const PROFILE_DIR = path.join(os.tmpdir(), "drama-soundboard-profile");
 
@@ -79,7 +82,7 @@ async function main() {
   const port = await pickPort(Number(process.env.PORT) || 3000);
   const url = `http://127.0.0.1:${port}/`;
 
-  const server = spawn(process.execPath, [SERVER], {
+  const server = spawn(process.execPath, SERVER_ARGS, {
     env: { ...process.env, PORT: String(port) },
     stdio: ["ignore", "pipe", "pipe"],
   });
@@ -127,7 +130,7 @@ async function main() {
   console.log(`Opened ${url}`);
 }
 
-module.exports = { pickPort, findBrowser, buildArgs };
+module.exports = { main, pickPort, findBrowser, buildArgs };
 
 if (require.main === module) {
   main().catch((err) => {

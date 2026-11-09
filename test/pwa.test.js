@@ -51,3 +51,7 @@ test("every css, js, font and img file is precached, so no feature breaks offlin
     }
   }
 });
+
+test("service worker leaves project exports alone", () => {
+  assert.ok(read("sw.js").includes('pathname.endsWith("/export")) return;'));
+});

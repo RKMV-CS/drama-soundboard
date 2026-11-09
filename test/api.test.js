@@ -35,7 +35,7 @@ async function newProject(name = "Show") {
 }
 
 test("health", async () => {
-  assert.deepEqual(await (await fetch(base + "/health")).json(), { ok: true });
+  assert.deepEqual(await (await fetch(base + "/health")).json(), { ok: true, version: require("../package.json").version });
 });
 
 test("create validates name, trims, and lists", async () => {
@@ -200,4 +200,91 @@ test("steps: default empty, round-trip, and validation", async () => {
   assert.deepEqual((await (await fetch(url)).json()).steps, steps, "rejected PUT must not overwrite");
   assert.equal((await fetch(`${base}/projects/nope/steps`)).status, 404);
   assert.equal((await json("PUT", `/projects/nope/steps`, { steps: [] })).status, 404);
+});
+
+// ---------- export / import ----------
+
+const zipForm = (buffer, name = "show.zip") => {
+  const f = new FormData();
+  f.append("file", new Blob([buffer]), name);
+  return f;
+};
+
+const exportZip = async (id) => {
+  const res = await fetch(`${base}/projects/${id}/export`);
+  assert.equal(res.status, 200);
+  return { res, zip: new AdmZip(Buffer.from(await res.arrayBuffer())) };
+};
+
+test("export: unknown project is 404", async () => {
+  const res = await fetch(`${base}/projects/nope/export`);
+  assert.equal(res.status, 404);
+});
+
+test("export then import: the copy has the audio, categories and cues", async () => {
+  const p = await newProject("Round Trip");
+  assert.equal((await fetch(`${base}/projects/${p.id}/audios/upload`, { method: "POST", body: audioForm("door.wav", "effects") })).status, 201);
+  assert.equal((await fetch(`${base}/projects/${p.id}/audios/upload`, { method: "POST", body: audioForm("theme.wav", "music") })).status, 201);
+  const steps = [{ type: "play_fx", target: "door.wav", name: "Door" }, { type: "stop_all" }];
+  assert.equal((await json("PUT", `/projects/${p.id}/steps`, { steps })).status, 200);
+
+  const { res, zip } = await exportZip(p.id);
+  assert.equal(res.headers.get("content-type"), "application/zip");
+  assert.match(res.headers.get("content-disposition"), /^attachment; filename="[^"]+\.dramashow\.zip"$/);
+  const names = zip.getEntries().map((e) => e.entryName).sort();
+  assert.deepEqual(names, ["audios/door.wav", "audios/theme.wav", "manifest.json", "project.json", "steps.json"]);
+
+  const imported = await fetch(`${base}/projects/import`, { method: "POST", body: zipForm(zip.toBuffer()) });
+  assert.equal(imported.status, 201);
+  const copy = (await imported.json()).project;
+  assert.notEqual(copy.id, p.id);
+  assert.equal(copy.name, "Round Trip");
+
+  const list = await (await fetch(`${base}/projects/${copy.id}/audios`)).json();
+  const files = list.audios.map((a) => a.filename);
+  assert.deepEqual(files.sort(), ["door.wav", "theme.wav"]);
+  const copySteps = await (await fetch(`${base}/projects/${copy.id}/steps`)).json();
+  assert.deepEqual(copySteps.steps, steps);
+});
+
+test("import: rejects garbage, a wrong-format zip, and a missing file; creates no project", async () => {
+  const before = (await (await fetch(`${base}/projects`)).json()).projects.length;
+
+  const notZip = await fetch(`${base}/projects/import`, { method: "POST", body: zipForm(Buffer.from("not a zip")) });
+  assert.equal(notZip.status, 400);
+
+  const wrong = new AdmZip();
+  wrong.addFile("manifest.json", Buffer.from(JSON.stringify({ format: "something-else", version: 1 })));
+  const wrongRes = await fetch(`${base}/projects/import`, { method: "POST", body: zipForm(wrong.toBuffer()) });
+  assert.equal(wrongRes.status, 400);
+
+  const empty = await fetch(`${base}/projects/import`, { method: "POST", body: new FormData() });
+  assert.equal(empty.status, 400);
+
+  const after = (await (await fetch(`${base}/projects`)).json()).projects.length;
+  assert.equal(after, before);
+});
+
+test("import: path traversal names, non-audio files and bad steps are dropped", async () => {
+  const z = new AdmZip();
+  z.addFile("manifest.json", Buffer.from(JSON.stringify({ format: "drama-soundboard-project", version: 1, name: "  Hostile  " })));
+  z.addFile("audios/../../evil.wav", Buffer.from("RIFFxxxxWAVE"));
+  z.addFile("audios/notes.txt", Buffer.from("x"));
+  z.addFile("audios/ok.wav", Buffer.from("RIFFxxxxWAVE"));
+  z.addFile("project.json", Buffer.from(JSON.stringify({ categories: { "ok.wav": "music", "ghost.wav": "effects" } })));
+  z.addFile("steps.json", Buffer.from(JSON.stringify([{ nope: 1 }])));
+
+  const res = await fetch(`${base}/projects/import`, { method: "POST", body: zipForm(z.toBuffer()) });
+  assert.equal(res.status, 201);
+  const copy = (await res.json()).project;
+  assert.equal(copy.name, "Hostile");
+
+  const { zip } = await exportZip(copy.id);
+  const audios = zip.getEntries().map((e) => e.entryName).filter((n) => n.startsWith("audios/"));
+  assert.ok(audios.includes("audios/ok.wav"));
+  assert.ok(!audios.includes("audios/notes.txt"), "non-audio dropped");
+  assert.ok(audios.every((n) => n.split("/").length === 2), "no nested or traversal paths");
+  const meta = JSON.parse(zip.getEntry("project.json").getData().toString("utf8"));
+  assert.deepEqual(meta.categories, { "ok.wav": "music" });
+  assert.equal(zip.getEntry("steps.json"), null, "invalid steps are not imported");
 });

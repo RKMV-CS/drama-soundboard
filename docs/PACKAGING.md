@@ -29,5 +29,11 @@ Stay on Node. The 75 MB saved by Go does not justify rewriting and re-testing th
 launcher (`bin/launch.js`), or a plain installer that carries Node. Revisit Go only if download size or
 memory use becomes a real complaint after the first users.
 
-Open before shipping: embed `public/` in the SEA build, sign the exe, decide where project data lives
-(`DRAMA_DATA_DIR`, per-user app-data folder instead of next to the exe).
+## Status
+
+- Embedding `public/` is done. `utils/assets.js` serves the UI from Node SEA assets when the app is packaged.
+  `scripts/build-sea.js` bundles the server with esbuild and injects it with postject. The output is about 88 MB
+  with 44 embedded files.
+- The per-user data folder is done (see the data layout section of the README).
+- The packaged exe is its own launcher. With no arguments it starts itself again with `--server` and opens the app window.
+- Still open: code signing, an installer, auto-update.

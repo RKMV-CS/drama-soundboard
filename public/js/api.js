@@ -16,6 +16,15 @@ export async function uploadAudio(id, file, type) {
   return json;
 }
 
+export async function importProject(file) {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch("/projects/import", { method: "POST", body: form });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(json.error || "Import failed");
+  return json;
+}
+
 export async function deleteAudio(id, filename) {
   const res = await fetch(audioUrl(id, filename), { method: "DELETE" });
   const json = await res.json().catch(() => ({}));
