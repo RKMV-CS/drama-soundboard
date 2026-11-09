@@ -180,6 +180,10 @@
             border: 2px dashed var(--border);
             border-radius: 12px;
         }
+        .form-error {
+            color: #f87171;
+            font-size: 0.875rem;
+        }
     </style>
 </head>
 <body>
@@ -192,20 +196,21 @@
         <div class="empty-state">Loading projects...</div>
     </main>
 
-    <div id="modal" class="modal">
+    <div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
         <div class="modal-content">
-            <h2>Create New Project</h2>
+            <h2 id="modal-title">Create New Project</h2>
             <div class="form-group">
                 <label for="name">Project Name</label>
-                <input type="text" id="name" placeholder="My Awesome Show">
+                <input type="text" id="name" placeholder="My Awesome Show" autocomplete="off">
             </div>
             <div class="form-group">
                 <label for="description">Description (optional)</label>
-                <textarea id="description" rows="3" placeholder="Briefly describe your soundboard..."></textarea>
+                <textarea id="description" rows="3" placeholder="Briefly describe your soundboard..." autocomplete="off"></textarea>
             </div>
+            <div id="form-error" class="form-error" role="alert" hidden></div>
             <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 10px;">
                 <button class="btn btn-outline" onclick="hideModal()">Cancel</button>
-                <button class="btn" onclick="createProject()">Create Project</button>
+                <button id="create-btn" class="btn" onclick="createProject()">Create Project</button>
             </div>
         </div>
     </div>
@@ -213,6 +218,21 @@
     <script>
         const projectList = document.getElementById('project-list');
         const modal = document.getElementById('modal');
+        const formError = document.getElementById('form-error');
+        const createBtn = document.getElementById('create-btn');
+
+        // Builds an element with textContent so server/user data is never parsed as HTML.
+        function el(tag, className, text) {
+            const node = document.createElement(tag);
+            if (className) node.className = className;
+            if (text !== undefined) node.textContent = text;
+            return node;
+        }
+
+        function setFormError(msg) {
+            formError.textContent = msg;
+            formError.hidden = !msg;
+        }
 
         async function fetchProjects() {
             try {
@@ -221,48 +241,60 @@
                 renderProjects(data.projects);
             } catch (err) {
                 console.error(err);
-                projectList.innerHTML = '<div class="empty-state">Failed to load projects.</div>';
+                projectList.replaceChildren(el('div', 'empty-state', 'Failed to load projects.'));
             }
         }
 
         function renderProjects(projects) {
             if (!projects || projects.length === 0) {
-                projectList.innerHTML = '<div class="empty-state">No projects found. Create your first one!</div>';
+                projectList.replaceChildren(el('div', 'empty-state', 'No projects found. Create your first one!'));
                 return;
             }
 
-            projectList.innerHTML = projects.map(p => `
-                <div class="project-card">
-                    <h3 class="project-name">${p.name}</h3>
-                    <p class="project-desc">${p.description || 'No description provided.'}</p>
-                    <div class="project-meta">
-                        <span>Created: ${new Date(p.createdAt).toLocaleDateString()}</span>
-                        <span>Updated: ${new Date(p.updatedAt).toLocaleDateString()}</span>
-                    </div>
-                    <a href="soundboard.html?project=${p.id}" class="btn">Open Soundboard</a>
-                </div>
-            `).join('');
+            projectList.replaceChildren(...projects.map(p => {
+                const card = el('div', 'project-card');
+                card.appendChild(el('h3', 'project-name', p.name));
+                card.appendChild(el('p', 'project-desc', p.description || 'No description provided.'));
+
+                const meta = el('div', 'project-meta');
+                meta.appendChild(el('span', null, 'Created: ' + new Date(p.createdAt).toLocaleDateString()));
+                meta.appendChild(el('span', null, 'Updated: ' + new Date(p.updatedAt).toLocaleDateString()));
+                card.appendChild(meta);
+
+                const link = el('a', 'btn', 'Open Soundboard');
+                link.href = 'soundboard.html?project=' + encodeURIComponent(p.id);
+                card.appendChild(link);
+                return card;
+            }));
         }
 
         function showModal() {
             modal.classList.add('show');
+            document.getElementById('name').focus();
         }
 
         function hideModal() {
             modal.classList.remove('show');
+            setFormError('');
             document.getElementById('name').value = '';
             document.getElementById('description').value = '';
         }
 
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && modal.classList.contains('show')) hideModal();
+        });
+
         async function createProject() {
-            const name = document.getElementById('name').value;
+            const name = document.getElementById('name').value.trim();
             const description = document.getElementById('description').value;
 
             if (!name) {
-                alert('Please enter a project name.');
+                setFormError('Please enter a project name.');
                 return;
             }
 
+            setFormError('');
+            createBtn.disabled = true;
             try {
                 const res = await fetch('/projects', {
                     method: 'POST',
@@ -275,11 +307,13 @@
                     fetchProjects();
                 } else {
                     const err = await res.json();
-                    alert('Error: ' + err.error);
+                    setFormError('Error: ' + err.error);
                 }
             } catch (err) {
                 console.error(err);
-                alert('Failed to create project.');
+                setFormError('Failed to create project.');
+            } finally {
+                createBtn.disabled = false;
             }
         }
 

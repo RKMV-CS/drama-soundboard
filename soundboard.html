@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Soundboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Drama Soundboard</title>
 
 <style>
 :root {
@@ -262,6 +263,8 @@ button {
 
 button:hover { border-color: white; }
 
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+
 .stop { border-color: white; }
 
 /* MODE TOGGLE */
@@ -464,7 +467,7 @@ Dialogue continues..."></textarea>
 <button class="stop" onclick="stopBGM()">STOP BGM</button>
 </div>
 
-<div id="toast-container"></div>
+<div id="toast-container" aria-live="polite"></div>
 <script>
 // Storage keys
 const STORAGE_SCRIPT = "sb_script";
@@ -477,6 +480,7 @@ let aiEnabled = localStorage.getItem(STORAGE_AI_ENABLED) !== "false";
 let projectId = null;
 let audioFileStore = { effects: {}, bgm: {} };
 let keybinds = {};
+const RESERVED_KEYS = ['w', 's', '2', '8', 'enter'];
 
 let currentBGMBtn = null;
 let currentBGMRow = null;
@@ -491,9 +495,11 @@ let duckTimer;
 
 function duck(down=true){
  clearInterval(duckTimer);
+ const target = Math.min(1, Math.max(0, Number(bgmBase) * (down ? duckTarget : 1)));
  duckTimer=setInterval(()=>{
-  if(down && bgm.volume>bgmBase*duckTarget) bgm.volume-=0.02;
-  if(!down && bgm.volume<bgmBase) bgm.volume+=0.02;
+  if(down && bgm.volume>target) bgm.volume=Math.max(target, bgm.volume-0.02);
+  else if(!down && bgm.volume<target) bgm.volume=Math.min(target, bgm.volume+0.02);
+  else clearInterval(duckTimer);
  },30);
 }
 
@@ -515,6 +521,7 @@ function renderTrack(fileName, source, type) {
     const btn = document.createElement('button');
     btn.className = 'player-btn';
     btn.textContent = '▶';
+    btn.setAttribute('aria-label', 'Play ' + fileName);
 
     const nameSpan = document.createElement('span');
     nameSpan.textContent = fileName.length > 18 ? fileName.substring(0, 18) + '…' : fileName;
@@ -534,7 +541,28 @@ function renderTrack(fileName, source, type) {
         keyInput.value = keybinds[fileName] || '';
         keyInput.addEventListener('keydown', (e) => {
             e.preventDefault();
+            if (e.key === 'Backspace' || e.key === 'Delete') {
+                delete keybinds[fileName];
+                keyInput.value = '';
+                saveKeybinds();
+                return;
+            }
             const k = e.key === ' ' ? 'Space' : e.key;
+            if (RESERVED_KEYS.includes(k.toLowerCase())) {
+                showToast(`"${k}" is reserved`, 'error');
+                return;
+            }
+            const oldFile = Object.keys(keybinds).find(f => f !== fileName && keybinds[f] === k);
+            if (oldFile) {
+                delete keybinds[oldFile];
+                document.querySelectorAll('.track').forEach(t => {
+                    if (t.dataset.filename === oldFile) {
+                        const oldInput = t.querySelector('.key-input');
+                        if (oldInput) oldInput.value = '';
+                    }
+                });
+                showToast(`Moved key ${k} from ${oldFile} to ${fileName}`, 'info');
+            }
             keybinds[fileName] = k;
             keyInput.value = k;
             saveKeybinds();
@@ -548,6 +576,7 @@ function renderTrack(fileName, source, type) {
     delBtn.style.cssText = 'width:24px;height:24px;padding:0;font-size:11px;color:#666;background:transparent;border:none;cursor:pointer;';
     delBtn.onmouseenter = () => delBtn.style.color = '#ff4444';
     delBtn.onmouseleave = () => delBtn.style.color = '#666';
+    delBtn.setAttribute('aria-label', 'Remove ' + fileName);
     delBtn.onclick = () => deleteTrack(fileName, type, row);
 
     if (type === 'bgm') {
@@ -1047,7 +1076,7 @@ function renderSteps() {
         durInput.value = step.duration || 1000;
         const needsDur = ['fade_in_bgm', 'fade_out_bgm', 'wait'].includes(step.type);
         durInput.style.display = needsDur ? 'block' : 'none';
-        durInput.oninput = (e) => updateStep(i, 'duration', parseInt(e.target.value));
+        durInput.oninput = (e) => updateStep(i, 'duration', parseInt(e.target.value, 10) || 0);
 
         // Looping Toggle
         const loopLabel = document.createElement('label');
@@ -1065,7 +1094,7 @@ function renderSteps() {
         const delayInput = document.createElement('input');
         delayInput.type = 'number'; delayInput.placeholder = 'Delay'; delayInput.style.width = '50px';
         delayInput.value = step.delay || 0;
-        delayInput.oninput = (e) => updateStep(i, 'delay', parseInt(e.target.value));
+        delayInput.oninput = (e) => updateStep(i, 'delay', parseInt(e.target.value, 10) || 0);
         const delayLabel = document.createElement('label');
         delayLabel.textContent = 'Delay';
         const delayWrap = document.createElement('div');
@@ -1088,6 +1117,7 @@ function renderSteps() {
         const removeBtn = document.createElement('button');
         removeBtn.className = 'remove-step';
         removeBtn.textContent = '✕';
+        removeBtn.setAttribute('aria-label', 'Remove step ' + (i + 1));
         removeBtn.onclick = () => removeStep(i);
 
         item.appendChild(indexSpan);
@@ -1139,19 +1169,21 @@ function resetSteps() {
 }
 
 function fadeAudio(audio, target, duration, cb) {
+    const to = Number(target);
+    const ms = Number(duration) > 0 ? Number(duration) : 1000;
     const startVol = audio.volume;
-    const diff = target - startVol;
+    const diff = to - startVol;
     const stepsCount = 20;
-    const interval = (duration || 1000) / stepsCount;
+    const interval = ms / stepsCount;
     const stepAmount = diff / stepsCount;
     let current = 0;
-    
+
     const timer = setInterval(() => {
         current++;
         audio.volume = Math.max(0, Math.min(1, startVol + stepAmount * current));
         if (current >= stepsCount) {
             clearInterval(timer);
-            audio.volume = target;
+            audio.volume = to;
             if (cb) cb();
         }
     }, interval);
@@ -1195,7 +1227,7 @@ async function executeStep(step) {
                  playBGM(bgmSource, null, null);
                  bgm.volume = 0;
             }
-            fadeAudio(bgm, bgmVol.value, step.duration);
+            fadeAudio(bgm, parseFloat(bgmVol.value), step.duration);
             break;
         case 'fade_out_bgm':
             fadeAudio(bgm, 0, step.duration, () => {
@@ -1304,7 +1336,7 @@ function stopAll(){
 
 bgmVol.oninput = e => { 
     const v = e.target.value;
-    bgmBase = bgm.volume = v; 
+    bgmBase = bgm.volume = parseFloat(v);
     bgmVolPercent.value = Math.round(v * 100); 
     localStorage.setItem(STORAGE_BGM_VOL, v); 
 };
@@ -1346,7 +1378,7 @@ document.addEventListener('keydown', (e) => {
             const source = audioFileStore.effects[fileName];
             if (source) {
                 const rows = [...document.getElementById("effects").children];
-                const targetRow = rows.find(r => r.querySelector('span').textContent.startsWith(fileName.substring(0,10)));
+                const targetRow = rows.find(r => r.dataset.filename === fileName);
                 const targetBtn = targetRow ? targetRow.querySelector('.player-btn') : null;
                 toggleFX(source, targetBtn, targetRow);
             }
@@ -1358,7 +1390,7 @@ document.addEventListener('keydown', (e) => {
 const savedScript = localStorage.getItem(STORAGE_SCRIPT);
 if (savedScript) script.value = savedScript;
 const savedBGMVol = localStorage.getItem(STORAGE_BGM_VOL);
-if (savedBGMVol) { bgmVol.value = savedBGMVol; bgmBase = savedBGMVol; bgmVolPercent.value = Math.round(savedBGMVol * 100); bgmVol.dispatchEvent(new Event('input')); }
+if (savedBGMVol) { bgmVol.value = savedBGMVol; bgmBase = parseFloat(savedBGMVol); bgmVolPercent.value = Math.round(savedBGMVol * 100); bgmVol.dispatchEvent(new Event('input')); }
 const savedFXVol = localStorage.getItem(STORAGE_FX_VOL);
 if (savedFXVol) { fxVol.value = savedFXVol; fxVolPercent.value = Math.round(savedFXVol * 100); fxVol.dispatchEvent(new Event('input')); }
 

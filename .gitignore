@@ -2,3 +2,8 @@ node_modules/
 projects/
 uploads/
 .env
+graphify-out/
+*.log
+.DS_Store
+db.json.tmp
+db.json
