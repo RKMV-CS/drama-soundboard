@@ -1,6 +1,6 @@
 // Classic service worker. Shell is precached; audio is cached on first play (network-first);
 // API is network-first with a cached fallback. Bump CACHE to ship a new shell.
-const CACHE = "sb-shell-v1";
+const CACHE = "sb-shell-v2";
 
 const SHELL = [
   "/",
@@ -11,6 +11,7 @@ const SHELL = [
   "/css/components.css",
   "/css/fonts.css",
   "/css/levels.css",
+  "/css/show.css",
   "/css/tokens.css",
   "/js/api.js",
   "/js/audio.js",
@@ -22,6 +23,7 @@ const SHELL = [
   "/js/library.js",
   "/js/projects.js",
   "/js/pwa.js",
+  "/js/show-mode.js",
   "/js/soundboard.js",
   "/js/steps-sync.js",
   "/js/steps.js",

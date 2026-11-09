@@ -40,3 +40,14 @@ test("both pages link the manifest and register the PWA script", () => {
     assert.match(html, /<script type="module" src="js\/pwa\.js"><\/script>/, page);
   }
 });
+
+test("every css, js, font and img file is precached, so no feature breaks offline", () => {
+  const match = read("sw.js").match(/const SHELL = \[([\s\S]*?)\];/);
+  const cached = new Set([...match[1].matchAll(/"([^"]+)"/g)].map((m) => m[1]));
+  for (const dir of ["css", "js", "fonts", "img"]) {
+    for (const file of fs.readdirSync(path.join(PUBLIC, dir))) {
+      if (file.endsWith(".txt")) continue; // fonts/README.txt
+      assert.ok(cached.has(`/${dir}/${file}`), `not precached: /${dir}/${file}`);
+    }
+  }
+});
