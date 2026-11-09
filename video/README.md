@@ -3,6 +3,8 @@
 An 80-second explainer for Drama Soundboard, built with [Remotion](https://www.remotion.dev/).
 The screenshots in `public/shots` are real captures of the app.
 
+[Watch the finished video](../docs/media/drama-soundboard-explainer.mp4).
+
 ```bash
 cd video
 npm install

@@ -3,9 +3,14 @@ on:
   push:
     branches: [main]
   pull_request:
+
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       matrix:
         node: [18, 20, 22]
@@ -17,3 +22,35 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm test
+
+  # Builds the single-file app on each OS and checks that the binary serves its embedded UI.
+  package:
+    needs: test
+    timeout-minutes: 15
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build:sea
+      - name: Smoke test the binary
+        shell: bash
+        run: |
+          export DRAMA_DATA_DIR="$RUNNER_TEMP/data" PORT=3456
+          bin=$(ls dist/drama-soundboard-*-* | grep -v '\.blob$' | head -n 1)
+          "$bin" --server &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 30); do
+            curl -fsS http://localhost:3456/health && break
+            sleep 1
+          done
+          curl -fsS http://localhost:3456/health
+          curl -fsS http://localhost:3456/ | grep -qi "<title>"

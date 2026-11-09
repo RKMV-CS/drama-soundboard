@@ -4,6 +4,11 @@ A local-first soundboard for live theatre and drama sound cues. Load a project w
 
 It runs on your own machine, offline. No cloud service is involved.
 
+## Demo
+
+[Watch the 80-second explainer](docs/media/drama-soundboard-explainer.mp4) (1080p, with music).
+Video sources and rebuild instructions are in [video/](video/README.md).
+
 ## Features
 
 - Per-project audio library: drag and drop mp3, wav, ogg, m4a, aac, flac or webm files (up to 50 MB each), or upload a zip archive (up to 200 MB).
@@ -79,6 +84,12 @@ npm run build:sea
 ```
 
 This writes `dist/drama-soundboard-<version>-<platform>[.exe]`, about 88 MB. The app needs no Node.js install, and the UI is embedded in the file. Double-click it to open the app in its own window; Google Chrome or Microsoft Edge must be installed. The build is unsigned, so Windows SmartScreen will warn on first run.
+
+## GitHub builds
+
+CI runs the tests on Node.js 18, 20 and 22, then builds and smoke-tests the packaged app on Windows and Linux.
+
+Run the **Release** workflow manually to download a Windows executable, installer and SHA-256 checksums from its `windows-build` artifact. Push a version tag such as `v0.9.0` to publish those files as GitHub release assets. Windows builds are unsigned.
 
 ## Themes
 
