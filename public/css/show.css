@@ -1,0 +1,43 @@
+/* Show mode: a distraction-free cue screen for a live show. Everything is scoped to body.show-mode except the base now-playing line. */
+
+.now-playing { margin: 0; font-size: var(--t-md); color: var(--c-muted); overflow-wrap: anywhere; }
+
+/* Hide what the operator does not need during the show, including all edit controls. */
+body.show-mode .app-header__tools > :not(#showModeBtn),
+body.show-mode .panel--fx,
+body.show-mode .panel--bgm,
+body.show-mode #editToggle,
+body.show-mode #addStepBtn,
+body.show-mode #resetBtn,
+body.show-mode .cue__tools,
+body.show-mode .cue__editor,
+body.show-mode .cue__remove { display: none; }
+
+body.show-mode .board { grid-template-columns: 1fr; grid-template-areas: "cues"; }
+
+/* The next band is the hero. */
+body.show-mode .next-band {
+  --next-num-size: clamp(4rem, 14vw, 9rem);
+  --next-what-size: clamp(1.75rem, 5vw, 3.5rem);
+  padding: var(--s-6);
+}
+body.show-mode .next-band__then,
+body.show-mode .next-band__detail,
+body.show-mode .next-band__note { font-size: var(--t-lg); }
+
+/* Cue list stays visible but compact, with its own scroll. */
+body.show-mode .cues { flex: 1 1 auto; min-height: 6rem; max-height: none; }
+
+/* No page scroll mid-show, at any width: the cue list absorbs the leftover height. */
+body.show-mode.has-board { height: 100vh; overflow: hidden; }
+body.show-mode .board, body.show-mode .panel--cues { min-height: 0; }
+body.show-mode .cue-actions { position: static; padding: 0; background: none; }
+
+body.show-mode .cue-actions .btn--next {
+  flex: 1 1 100%; margin-left: 0;
+  min-height: 5rem; font-size: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+body.show-mode #stopAllBtn { min-height: 4rem; padding: 0 var(--s-5); font-size: var(--t-lg); }
+
+body.show-mode .now-playing { font-size: var(--t-lg); color: var(--c-text); }

@@ -4,6 +4,7 @@ import { initVolume, stopEffect, stopBGM, stopAll } from "./audio.js";
 import { initLibrary, addLibraryTrack } from "./library.js";
 import { initSteps, renderSteps } from "./steps.js";
 import { initKeys } from "./keys.js";
+import { initShowMode } from "./show-mode.js";
 import { openProject, audioUrl } from "./api.js";
 import { initStepsSync, pullSteps } from "./steps-sync.js";
 import { state, loadKeybinds, loadSteps } from "./store.js";
@@ -46,6 +47,7 @@ function init() {
   initSteps();
   initStepsSync();
   initKeys();
+  initShowMode();
   renderEmptyHints();
 
   wireButton("stopFxBtn", () => stopEffect());

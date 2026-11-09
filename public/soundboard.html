@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/app.css">
 <link rel="stylesheet" href="css/levels.css">
+<link rel="stylesheet" href="css/show.css">
 </head>
 <body class="has-board">
 <a class="skip-link" href="#cue-list">Skip to cue list</a>
@@ -30,6 +31,7 @@
       <label><input type="radio" name="theme" value="book"><span>Book</span></label>
     </fieldset>
     <label class="switch"><input type="checkbox" id="proMode">Pro mode</label>
+    <button type="button" id="showModeBtn" class="btn btn--sm" aria-pressed="false">Show mode</button>
   </div>
 </header>
 
@@ -54,6 +56,7 @@
     </div>
 
     <div id="next-band" class="next-band is-empty" aria-live="polite"></div>
+    <p id="now-playing" class="now-playing" aria-live="polite" hidden></p>
 
     <ol id="steps-list" class="cues"></ol>
 

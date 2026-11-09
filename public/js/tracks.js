@@ -184,10 +184,20 @@ export function setPlaying(row, on) {
   if (!row) return;
   const playing = Boolean(on);
   row.classList.toggle("is-playing", playing);
+  renderNowPlaying();
   const btn = row.querySelector(".track__play");
   if (!btn) return;
   btn.setAttribute("aria-pressed", String(playing));
   btn.replaceChildren(icon(playing ? "pause" : "play"));
+}
+
+// Names every sounding track; the line stays hidden while nothing plays.
+function renderNowPlaying() {
+  const line = document.getElementById("now-playing");
+  if (!line) return;
+  const names = [...document.querySelectorAll(".track.is-playing")].map((r) => r.dataset.filename);
+  line.hidden = names.length === 0;
+  line.textContent = names.length ? `Playing: ${names.join(", ")}` : "";
 }
 
 // Shows BGM progress on a row. Duration is NaN or Infinity until metadata loads, so the ratio falls back to 0.
