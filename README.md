@@ -10,7 +10,6 @@ A soundboard for theatre and drama productions. Load a project with its sound ef
 - Stepwise cue flow: play, pause or fade BGM; play or stop FX; wait; auto-next.
 - Keyboard control: BGM volume `W`/`S`, FX volume `8`/`2`, `Enter` to advance to the next step.
 - BGM ducks automatically under effects.
-- Optional AI (Gemini): categorize uploaded files and turn a script into steps. Falls back to Chrome's built-in Nano model when no server key is set.
 
 ## Quick start
 
@@ -30,7 +29,6 @@ Set these in a `.env` file in the repo root or in the environment.
 | Variable | Default | Purpose |
 |---|---|---|
 | `PORT` | `3000` | HTTP port for the server. |
-| `GEMINI_API_KEY` | unset | Enables server-side AI file categorization and Script-to-Steps. Without it the rest of the app works, and AI features fall back to Chrome Nano. |
 | `DRAMA_DATA_DIR` | repo root | Directory where project data is stored. |
 
 ## Project data layout
@@ -68,12 +66,6 @@ uploads/                     temporary upload area
 | GET | `/projects/:id/audios/:filename` | Download an audio file. |
 | DELETE | `/projects/:id/audios/:filename` | Delete an audio file. |
 | GET | `/projects/:id/download` | Download the project's uploaded `archive.zip`. |
-| POST | `/api/ai/categorize` | AI categorization of uploaded files. |
-| POST | `/api/ai/script-to-steps` | Convert a script into cue steps. |
-
-## Script format example
-
-[`examples/Script.txt`](examples/Script.txt) is a sample script you can paste into the AI "Script → Steps" panel. It is free text; the app does not parse it directly.
 
 ## Testing
 

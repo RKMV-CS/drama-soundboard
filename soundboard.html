@@ -279,12 +279,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
     color: var(--muted);
 }
 
-#aiToggleBtn.off {
-    background: #111;
-    border-color: #333;
-    color: #555;
-}
-
 /* VOLUME CONTROLS */
 .vol-control {
     display: flex;
@@ -369,15 +363,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
-.ai-badge {
-    background: #7c6af722;
-    border: 1px solid #7c6af755;
-    color: #7c6af7;
-    border-radius: 3px;
-    padding: 1px 5px;
-    font-size: 9px;
-    flex-shrink: 0;
-}
 </style>
 </head>
 
@@ -397,8 +382,6 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 <a href="index.html" style="color: var(--muted); text-decoration: none; margin-right: 20px;">← Back to Projects</a>
 <label for="proMode" style="margin: 0;">Pro Mode</label>
 <input type="checkbox" id="proMode">
-<span style="width:1px;height:14px;background:#333;margin:0 4px;display:inline-block"></span>
-<button id="aiToggleBtn" onclick="toggleAI()" style="background:#7c6af722;border:1px solid #7c6af766;color:#7c6af7;padding:3px 10px;border-radius:10px;font-size:11px;cursor:pointer;">✦ AI ON</button>
 </div>
 
 <h2 id="project-title">SOUNDBOARD</h2>
@@ -406,20 +389,9 @@ button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px s
 <div class="stepwise-container">
     <div class="steps-header">
         <label>STEPWISE FLOW</label>
-        <div style="display:flex;align-items:center;gap:8px;">
-            <span id="step-counter" style="font-size: 11px; color: var(--muted);">Step 0 of 0</span>
-            <button id="ai-panel-toggle" onclick="toggleAIPanel()" style="background:#7c6af714;border:1px solid #7c6af744;color:#7c6af7;padding:2px 8px;border-radius:4px;font-size:10px;cursor:pointer;">✦ AI ▾</button>
-        </div>
+        <span id="step-counter" style="font-size: 11px; color: var(--muted);">Step 0 of 0</span>
     </div>
 
-    <div id="ai-panel" style="display:none;background:#0d0d1a;border:1px solid #7c6af733;border-radius:6px;padding:10px;margin-bottom:8px;">
-        <div style="color:#7c6af7;font-size:10px;text-transform:uppercase;margin-bottom:6px;">Script → Steps</div>
-        <textarea id="ai-script-input" placeholder="Paste your theater script or describe a scene..." style="width:100%;height:80px;background:#000;color:#fff;border:1px solid #333;border-radius:4px;padding:6px;font-size:11px;resize:vertical;font-family:inherit;"></textarea>
-        <div style="display:flex;gap:8px;margin-top:6px;align-items:center;">
-            <button id="ai-generate-btn" onclick="generateStepsFromScript()" style="background:#7c6af7;color:#fff;border:none;padding:5px 14px;border-radius:4px;font-size:11px;cursor:pointer;flex:1;">⚡ Generate Steps</button>
-            <span id="ai-gen-status" style="font-size:10px;color:var(--muted);"></span>
-        </div>
-    </div>
     <div id="steps-list" class="steps-list"></div>
     <div class="step-controls">
         <button onclick="addStep()">+ ADD STEP</button>
@@ -473,8 +445,6 @@ Dialogue continues..."></textarea>
 const STORAGE_SCRIPT = "sb_script";
 const STORAGE_BGM_VOL = "sb_bgm_vol";
 const STORAGE_FX_VOL = "sb_fx_vol";
-const STORAGE_AI_ENABLED = "sb_ai_enabled";
-let aiEnabled = localStorage.getItem(STORAGE_AI_ENABLED) !== "false";
 
 // Project state
 let projectId = null;
@@ -605,95 +575,6 @@ function showToast(msg, type, duration) {
     }, duration);
 }
 
-function showAICategorizerToast(filename, aiCategory, originalType) {
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = 'toast info';
-    toast.style.cssText = 'min-width:260px;padding:10px 14px;';
-
-    const label = document.createElement('div');
-    label.style.cssText = 'display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;';
-
-    const labelLeft = document.createElement('div');
-
-    const classifiedLabel = document.createElement('div');
-    classifiedLabel.style.cssText = 'font-size:10px;color:#7c6af7;text-transform:uppercase;margin-bottom:2px';
-    classifiedLabel.textContent = '✦ AI Classified';
-
-    const filenameLabel = document.createElement('div');
-    filenameLabel.style.cssText = 'font-size:12px;font-weight:600';
-    filenameLabel.textContent = `${filename.length > 20 ? filename.substring(0,20)+'…' : filename} → ${aiCategory === 'bgm' ? 'BGM' : 'FX'}`;
-
-    labelLeft.appendChild(classifiedLabel);
-    labelLeft.appendChild(filenameLabel);
-
-    const closeBtn = document.createElement('span');
-    closeBtn.className = 'toast-close';
-    closeBtn.style.cssText = 'cursor:pointer;color:#555;font-size:16px;line-height:1;padding-left:8px;';
-    closeBtn.textContent = '×';
-
-    label.appendChild(labelLeft);
-    label.appendChild(closeBtn);
-
-    const barWrap = document.createElement('div');
-    barWrap.style.cssText = 'display:flex;gap:8px;align-items:center;';
-
-    let undoClicked = false;
-    if (aiCategory !== originalType) {
-        const undoBtn = document.createElement('button');
-        undoBtn.textContent = 'Undo';
-        undoBtn.style.cssText = 'background:#222;border:1px solid #444;color:#ccc;padding:3px 10px;border-radius:4px;font-size:10px;cursor:pointer;flex-shrink:0;';
-        undoBtn.onclick = () => {
-            undoClicked = true;
-            reclassifyTrack(filename, aiCategory, originalType);
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        };
-        barWrap.appendChild(undoBtn);
-    }
-
-    const progressWrap = document.createElement('div');
-    progressWrap.style.cssText = 'flex:1;background:#333;border-radius:4px;height:3px;overflow:hidden;';
-    const bar = document.createElement('div');
-    bar.style.cssText = 'background:#7c6af7;height:100%;width:100%;transition:width 5s linear;';
-    progressWrap.appendChild(bar);
-    barWrap.appendChild(progressWrap);
-
-    toast.appendChild(label);
-    toast.appendChild(barWrap);
-    container.appendChild(toast);
-
-    closeBtn.onclick = () => {
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    };
-
-    requestAnimationFrame(() => { bar.style.width = '0%'; });
-
-    const timer = setTimeout(() => {
-        if (!undoClicked) {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 300);
-        }
-    }, 5000);
-
-    toast.addEventListener('mouseenter', () => clearTimeout(timer));
-}
-
-function reclassifyTrack(filename, fromType, toType) {
-    const url = audioFileStore[fromType][filename];
-    if (!url) return;
-    delete audioFileStore[fromType][filename];
-    audioFileStore[toType][filename] = url;
-
-    const fromContainer = document.getElementById(fromType === 'bgm' ? 'bgms' : 'effects');
-    const existing = fromContainer?.querySelector(`[data-filename="${CSS.escape(filename)}"]`);
-    if (existing) existing.remove();
-
-    renderTrack(filename, url, toType);
-    showToast(`Moved '${filename}' to ${toType === 'bgm' ? 'BGM' : 'FX'}`, 'info');
-}
-
 async function initProject() {
     const params = new URLSearchParams(window.location.search);
     projectId = params.get('project');
@@ -741,133 +622,11 @@ function loadKeybinds() {
     }
 }
 
-let aiPanelOpen = false;
-
-function toggleAI() {
-    aiEnabled = !aiEnabled;
-    localStorage.setItem(STORAGE_AI_ENABLED, aiEnabled);
-    applyAIState();
-}
-
-function applyAIState() {
-    const btn = document.getElementById('aiToggleBtn');
-    const panel = document.getElementById('ai-panel');
-    const panelToggle = document.getElementById('ai-panel-toggle');
-    if (!btn) return;
-    if (aiEnabled) {
-        btn.textContent = '✦ AI ON';
-        btn.classList.remove('off');
-        if (panelToggle) panelToggle.style.display = '';
-    } else {
-        btn.textContent = 'AI OFF';
-        btn.classList.add('off');
-        if (panel) panel.style.display = 'none';
-        aiPanelOpen = false;
-        if (panelToggle) panelToggle.style.display = 'none';
-    }
-}
-
-function toggleAIPanel() {
-    aiPanelOpen = !aiPanelOpen;
-    const panel = document.getElementById('ai-panel');
-    const btn = document.getElementById('ai-panel-toggle');
-    if (panel) panel.style.display = aiPanelOpen ? 'block' : 'none';
-    if (btn) btn.textContent = aiPanelOpen ? '✦ AI ▲' : '✦ AI ▾';
-}
-
-async function generateStepsFromScript() {
-    if (!aiEnabled) return;
-
-    const scriptText = document.getElementById('ai-script-input')?.value?.trim();
-    if (!scriptText) { showToast('Paste a script first', 'error'); return; }
-
-    const statusEl = document.getElementById('ai-gen-status');
-    const btn = document.getElementById('ai-generate-btn');
-    btn.disabled = true;
-    btn.textContent = '⏳ Generating…';
-    if (statusEl) statusEl.textContent = '';
-
-    const availableAudio = [
-        ...Object.keys(audioFileStore.effects),
-        ...Object.keys(audioFileStore.bgm)
-    ];
-
-    let newSteps;
-    try {
-        const res = await fetch('/api/ai/script-to-steps', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ script: scriptText, availableAudio })
-        });
-        if (!res.ok) throw new Error('server error');
-        const data = await res.json();
-        newSteps = data.steps;
-    } catch {
-        try {
-            newSteps = await callChromeNanoScriptToSteps(scriptText, availableAudio);
-        } catch {
-            showToast('AI unavailable — check server and API key', 'error');
-            btn.disabled = false;
-            btn.textContent = '⚡ Generate Steps';
-            return;
-        }
-    }
-
-    if (!newSteps || !newSteps.length) {
-        showToast('AI returned no steps', 'error');
-        btn.disabled = false;
-        btn.textContent = '⚡ Generate Steps';
-        return;
-    }
-
-    const defaultStep = { type:'play_fx', target:'', duration:0, loop:false, delay:0, autoNext:false, aiGenerated:true };
-    newSteps = newSteps.map(s => ({ ...defaultStep, ...s, delay:0, autoNext:false, aiGenerated:true }));
-
-    steps.push(...newSteps);
-    renderSteps();
-    saveSteps();
-
-    if (statusEl) statusEl.textContent = `+${newSteps.length} steps`;
-    showToast(`✦ Added ${newSteps.length} AI steps`, 'success');
-    btn.disabled = false;
-    btn.textContent = '⚡ Generate Steps';
-}
-
-async function callChromeNanoCategorize(filename) {
-    const LM = window.LanguageModel || window.ai?.languageModel;
-    if (!LM) throw new Error('Chrome Nano not available');
-    const avail = await LM.availability?.() || await LM.capabilities?.().then(c => c.available) || 'no';
-    if (avail === 'no') throw new Error('Chrome Nano not available');
-    const session = await LM.create({
-        systemPrompt: 'You classify audio filenames for a theater soundboard. Reply with ONLY one word: bgm or effects.'
-    });
-    const result = await session.prompt(`Filename: ${filename}`);
-    session.destroy();
-    return result.toLowerCase().includes('bgm') ? 'bgm' : 'effects';
-}
-
-async function callChromeNanoScriptToSteps(script, availableAudio) {
-    const LM = window.LanguageModel || window.ai?.languageModel;
-    if (!LM) throw new Error('Chrome Nano not available');
-    const avail = await LM.availability?.() || await LM.capabilities?.().then(c => c.available) || 'no';
-    if (avail === 'no') throw new Error('Chrome Nano not available');
-    const session = await LM.create({
-        systemPrompt: 'You generate theater soundboard step sequences as JSON arrays.'
-    });
-    const prompt = `Available audio: ${availableAudio.join(', ')}\n\nScript: ${script}\n\nReturn ONLY a JSON array of steps, each with: type (play_fx/play_bgm/fade_in_bgm/fade_out_bgm/stop_all/wait), target (filename or ""), duration (number), loop (boolean), delay (0), autoNext (false).`;
-    const result = await session.prompt(prompt);
-    session.destroy();
-    const clean = result.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
-    const steps = JSON.parse(clean);
-    return Array.isArray(steps) ? steps.map(s => ({ ...s, delay: 0, autoNext: false, aiGenerated: true })) : [];
-}
-
 async function uploadAudioFile(file, type) {
     if (!projectId) {
         const url = URL.createObjectURL(file);
         audioFileStore[type][file.name] = url;
         renderTrack(file.name, url, type);
-        if (aiEnabled) runAICategorizerOnTrack(file.name, type);
         return;
     }
     const form = new FormData();
@@ -887,46 +646,8 @@ async function uploadAudioFile(file, type) {
         audioFileStore[type][data.filename] = url;
         renderTrack(data.filename, url, type);
         showToast('Saved: ' + data.filename, 'success');
-        if (aiEnabled) runAICategorizerOnTrack(data.filename, type);
     } catch (err) {
         showToast(err.message, 'error');
-    }
-}
-
-async function runAICategorizerOnTrack(filename, originalType) {
-    let aiCategory;
-    try {
-        const res = await fetch('/api/ai/categorize', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ filename })
-        });
-        if (!res.ok) throw new Error('server error');
-        const data = await res.json();
-        aiCategory = data.category;
-    } catch {
-        try {
-            aiCategory = await callChromeNanoCategorize(filename);
-        } catch {
-            return;
-        }
-    }
-
-    if (aiCategory !== originalType) {
-        reclassifyTrack(filename, originalType, aiCategory);
-    }
-    showAICategorizerToast(filename, aiCategory, originalType);
-
-    const finalType = aiCategory;
-    const container = document.getElementById(finalType === 'bgm' ? 'bgms' : 'effects');
-    const trackEl = container?.querySelector(`[data-filename="${CSS.escape(filename)}"]`);
-    if (trackEl && !trackEl.querySelector('.ai-badge')) {
-        const badge = document.createElement('span');
-        badge.className = 'ai-badge';
-        badge.textContent = 'AI';
-        badge.title = 'Classified by AI';
-        const nameEl = trackEl.querySelector('span[style]');
-        if (nameEl) nameEl.after(badge);
     }
 }
 
@@ -1000,8 +721,7 @@ function addStep() {
         volume: 1.0,
         loop: false,
         delay: 0,
-        autoNext: false,
-        aiGenerated: false
+        autoNext: false
     });
     renderSteps();
     saveSteps();
@@ -1121,13 +841,6 @@ function renderSteps() {
         removeBtn.onclick = () => removeStep(i);
 
         item.appendChild(indexSpan);
-        if (step.aiGenerated) {
-            const aiBadge = document.createElement('span');
-            aiBadge.className = 'ai-badge';
-            aiBadge.textContent = 'AI';
-            aiBadge.title = 'Generated by AI';
-            item.appendChild(aiBadge);
-        }
         item.appendChild(typeSelect);
         item.appendChild(targetSelect);
         item.appendChild(durInput);
@@ -1396,7 +1109,6 @@ if (savedFXVol) { fxVol.value = savedFXVol; fxVolPercent.value = Math.round(save
 
 initProject().then(() => {
     loadSteps();
-    applyAIState();
 });
 
 </script>
