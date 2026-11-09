@@ -11,4 +11,7 @@
   <symbol id="speaker" viewBox="0 0 24 24"><path d="M4 9.5h3.5L12 6v12l-4.5-3.5H4zM15.5 9a4 4 0 010 6M18 6.5a8 8 0 010 11"/></symbol>
   <symbol id="music" viewBox="0 0 24 24"><path d="M9 17V6l10-2v11M9 17a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM19 15a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"/></symbol>
   <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+  <symbol id="arrow-up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></symbol>
+  <symbol id="arrow-down" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></symbol>
+  <symbol id="copy" viewBox="0 0 24 24"><rect x="8.5" y="8.5" width="11" height="11" rx="1.5"/><path d="M15.5 8.5V5.5a1 1 0 00-1-1h-9a1 1 0 00-1 1v9a1 1 0 001 1h3"/></symbol>
 </svg>

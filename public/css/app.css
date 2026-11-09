@@ -103,10 +103,12 @@ body.has-board { height: 100vh; display: flex; flex-direction: column; overflow:
   background: var(--next-fill); color: var(--next-ink);
   border: 1px solid var(--next-border); border-radius: var(--radius);
 }
-.next-band__num { grid-row: span 2; font: 700 var(--next-num-size)/0.9 var(--font-mono); }
+.next-band > :not(.next-band__num) { grid-column: 2; }
+.next-band__num { grid-row: 1 / span 4; align-self: start; font: 700 var(--next-num-size)/0.9 var(--font-mono); }
 .next-band__what { font: 700 var(--next-what-size)/1.2 var(--font-display); letter-spacing: var(--display-tracking); text-transform: var(--display-case); }
 .next-band__what mark { background: var(--next-what-bg, transparent); color: var(--next-what-ink, inherit); padding: 0 var(--s-1); }
 .next-band__then { font-size: var(--t-sm); opacity: 0.8; }
+.next-band__detail, .next-band__note { font-size: var(--t-sm); color: inherit; opacity: 0.8; overflow-wrap: anywhere; }
 .next-band.is-empty { background: transparent; color: var(--c-muted); }
 .next-band.is-empty .next-band__num { font-size: var(--t-xl); }
 
@@ -130,6 +132,13 @@ body.has-board { height: 100vh; display: flex; flex-direction: column; overflow:
 .cue.is-next { background: var(--c-surface-2); outline: 1px solid var(--c-next); outline-offset: -1px; }
 .cue.is-next .cue__num { color: var(--c-next); }
 .cue.is-done .cue__action, .cue.is-done .cue__target { color: var(--c-muted); font-weight: 400; }
+/* A named cue: the name is the headline, the action and target drop to the muted line. */
+.cue__name { flex-basis: 100%; font-weight: 700; overflow-wrap: anywhere; }
+.cue__name + .cue__action { font-weight: 400; color: var(--c-muted); }
+.cue__note { flex-basis: 100%; font-size: var(--t-sm); color: var(--c-muted); overflow-wrap: anywhere; }
+.cue__field--name { flex: 1 1 14rem; }
+.cue__field--note { flex: 1 1 100%; }
+.cue__tools { display: flex; gap: var(--s-2); margin-left: auto; }
 
 .cue-actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3); }
 .cue-actions .btn--next { margin-left: auto; }

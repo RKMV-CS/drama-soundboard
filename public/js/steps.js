@@ -1,6 +1,18 @@
 // Stepwise cue list: rendering, editing, and running cues against the audio engine.
 import { state, saveSteps, loadSteps } from "./store.js";
-import { ACTIONS, DEFAULT_STEP, describeStep, nextIndex, nextBandModel } from "./cue-format.js";
+import {
+  ACTIONS,
+  DEFAULT_STEP,
+  NAME_MAX,
+  NOTE_MAX,
+  describeStep,
+  nextIndex,
+  nextBandModel,
+  moveStep,
+  duplicateStep,
+  indexAfterMove,
+  indexAfterInsert,
+} from "./cue-format.js";
 import { icon } from "./icons.js";
 import { findRow } from "./tracks.js";
 import {
@@ -137,24 +149,110 @@ function checkBox(index, key, text, checked) {
   return label;
 }
 
+// Text fields save on each keystroke but re-render only on change, so focus stays put while typing.
+function nameField(step, index) {
+  const input = el("input", "input input--compact");
+  input.type = "text";
+  input.maxLength = NAME_MAX;
+  input.placeholder = "Optional, e.g. Thunder crack";
+  input.value = step.name || "";
+  input.addEventListener("input", () => updateStep(index, "name", input.value));
+  input.addEventListener("change", () => refreshCue(index));
+  const block = fieldBlock(`cue-${index}-name`, "Name", input);
+  block.classList.add("cue__field--name");
+  return block;
+}
+
+function noteField(step, index) {
+  const input = el("textarea", "input");
+  input.maxLength = NOTE_MAX;
+  input.placeholder = "Optional, e.g. after 'the storm breaks'";
+  input.value = step.note || "";
+  input.addEventListener("input", () => updateStep(index, "note", input.value));
+  input.addEventListener("change", () => refreshCue(index));
+  const block = fieldBlock(`cue-${index}-note`, "Note", input);
+  block.classList.add("cue__field--note");
+  return block;
+}
+
+function toolButton(index, action, label, iconName, onClick) {
+  const btn = el("button", "icon-btn");
+  btn.type = "button";
+  btn.dataset.action = action;
+  btn.setAttribute("aria-label", label);
+  btn.append(icon(iconName));
+  btn.addEventListener("click", () => onClick(index));
+  return btn;
+}
+
+function cueTools(index) {
+  const group = el("div", "cue__tools");
+  const up = toolButton(index, "move-up", `Move cue ${index + 1} up`, "arrow-up", (i) => moveCue(i, i - 1));
+  const down = toolButton(index, "move-down", `Move cue ${index + 1} down`, "arrow-down", (i) => moveCue(i, i + 1));
+  const copy = toolButton(index, "duplicate", `Duplicate cue ${index + 1}`, "copy", duplicateCue);
+  up.disabled = index === 0;
+  down.disabled = index === state.steps.length - 1;
+  group.append(up, down, copy);
+  return group;
+}
+
 function buildEditor(step, index) {
   const def = Object.prototype.hasOwnProperty.call(ACTIONS, step.type) ? ACTIONS[step.type] : {};
   const editor = el("div", "cue__editor");
-  editor.append(typeField(step, index));
+  editor.append(nameField(step, index), noteField(step, index), typeField(step, index));
   if (def.target) editor.append(targetField(step, index, def.target));
   if (def.needsDuration) editor.append(numberField(index, "duration", "Duration (ms)", step.duration || 1000));
   if (step.type !== "wait") editor.append(numberField(index, "delay", "Delay (ms)", step.delay || 0));
   if (def.loopable) editor.append(checkBox(index, "loop", "Loop", step.loop));
   if (step.type !== "wait") editor.append(checkBox(index, "autoNext", "Auto-next", step.autoNext));
+  editor.append(cueTools(index));
   return editor;
 }
 
-function buildSummary(info) {
+function buildSummary(info, index) {
   const summary = el("div", "cue__summary");
+  if (info.name) summary.append(el("span", "cue__name", info.name));
   summary.append(el("span", "cue__action", info.label));
   if (info.target) summary.append(el("span", "cue__target", info.target));
   if (info.meta.length) summary.append(el("span", "cue__meta", info.meta.join(SEP)));
+  if (index <= state.currentStepIndex) {
+    const done = el("span", "cue__done");
+    done.append(icon("check"), el("span", "visually-hidden", "Done"));
+    summary.append(done);
+  }
+  if (info.note) summary.append(el("span", "cue__note", info.note));
   return summary;
+}
+
+// Re-draws one cue's summary and the next band without touching the editor, so focus is kept.
+function refreshCue(index) {
+  const summary = document.querySelector(`#steps-list .cue[data-index="${index}"] .cue__summary`);
+  summary?.replaceWith(buildSummary(describeStep(state.steps[index]), index));
+  renderNextBand(nextBandModel(state.steps, state.currentStepIndex));
+}
+
+function moveCue(index, to) {
+  state.steps = moveStep(state.steps, index, to);
+  state.currentStepIndex = indexAfterMove(state.currentStepIndex, index, to);
+  renderSteps();
+  saveSteps();
+  focusCueAction(to, to < index ? "move-up" : "move-down");
+}
+
+function duplicateCue(index) {
+  state.steps = duplicateStep(state.steps, index);
+  state.currentStepIndex = indexAfterInsert(state.currentStepIndex, index + 1);
+  renderSteps();
+  saveSteps();
+  focusCueAction(index, "duplicate");
+}
+
+function focusCueAction(index, action) {
+  const cue = document.querySelector(`#steps-list .cue[data-index="${index}"]`);
+  const btn = cue?.querySelector(`[data-action="${action}"]`);
+  // A disabled end-of-list button cannot take focus, so fall back to Duplicate.
+  const target = btn && !btn.disabled ? btn : cue?.querySelector('[data-action="duplicate"]');
+  target?.focus();
 }
 
 function cueFlag(kind) {
@@ -176,12 +274,7 @@ function buildCue(step, index, next) {
   removeBtn.append(icon("x"));
   removeBtn.addEventListener("click", () => removeStep(index));
 
-  const summary = buildSummary(info);
-  if (index <= state.currentStepIndex) {
-    const done = el("span", "cue__done");
-    done.append(icon("check"), el("span", "visually-hidden", "Done"));
-    summary.append(done);
-  }
+  const summary = buildSummary(info, index);
 
   cue.append(
     el("span", "cue__num", String(index + 1)),
@@ -212,7 +305,10 @@ function renderNextBand(model) {
   }
   const what = el("span", "next-band__what");
   what.append(el("mark", "", model.what));
-  children.push(what, el("span", "next-band__then", model.then));
+  children.push(what);
+  if (model.detail) children.push(el("span", "next-band__detail", model.detail));
+  if (model.note) children.push(el("span", "next-band__note", model.note));
+  children.push(el("span", "next-band__then", model.then));
   band.replaceChildren(...children);
 }
 
