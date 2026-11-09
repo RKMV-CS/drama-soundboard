@@ -5,8 +5,10 @@ const db = require("./db");
 const { slugify, uniqueSlug } = require("./slug");
 const zip = require("./zip");
 
-const REPO_ROOT = path.join(__dirname, "..");
-const PROJECTS_ROOT = path.join(REPO_ROOT, "projects");
+const { DATA_DIR } = require("./config");
+
+const REPO_ROOT = DATA_DIR;
+const PROJECTS_ROOT = path.join(DATA_DIR, "projects");
 
 function projectRoot(slug) {
   return path.join(PROJECTS_ROOT, slug);

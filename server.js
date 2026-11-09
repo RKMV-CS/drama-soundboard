@@ -7,19 +7,22 @@ const db = require("./utils/db");
 const projects = require("./utils/projects");
 const zip = require("./utils/zip");
 
+const { DATA_DIR } = require("./utils/config");
+
 const PORT = process.env.PORT || 3000;
+const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const app = express();
 
 app.use(express.json());
 app.use(express.static(__dirname));
 
 const upload = multer({
-  dest: path.join(__dirname, "uploads"),
+  dest: UPLOADS_DIR,
   limits: { fileSize: 200 * 1024 * 1024 },
 });
 
 const uploadAudio = multer({
-  dest: path.join(__dirname, "uploads"),
+  dest: UPLOADS_DIR,
   limits: { fileSize: 50 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     cb(null, zip.isAudioFile(file.originalname));
@@ -337,12 +340,17 @@ app.use((err, _req, res, _next) => {
   res.status(500).json({ error: err.message || "Internal server error" });
 });
 
-async function start() {
-  await fs.mkdir(path.join(__dirname, "uploads"), { recursive: true });
+async function init() {
+  await fs.mkdir(UPLOADS_DIR, { recursive: true });
   await fs.mkdir(projects.PROJECTS_ROOT, { recursive: true });
-  app.listen(PORT, () => {
-    console.log(`Drama soundboard API listening on http://localhost:${PORT}`);
+}
+
+if (require.main === module) {
+  init().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Drama soundboard API listening on http://localhost:${PORT}`);
+    });
   });
 }
 
-start();
+module.exports = { app, init };
