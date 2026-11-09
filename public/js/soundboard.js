@@ -5,6 +5,7 @@ import { initLibrary, addLibraryTrack } from "./library.js";
 import { initSteps, renderSteps } from "./steps.js";
 import { initKeys } from "./keys.js";
 import { openProject, audioUrl } from "./api.js";
+import { initStepsSync, pullSteps } from "./steps-sync.js";
 import { state, loadKeybinds, loadSteps } from "./store.js";
 import { renderEmptyHints } from "./tracks.js";
 import { showToast } from "./toast.js";
@@ -43,6 +44,7 @@ function init() {
   initVolume();
   initLibrary();
   initSteps();
+  initStepsSync();
   initKeys();
   renderEmptyHints();
 
@@ -53,6 +55,7 @@ function init() {
   initProject().then(() => {
     loadSteps();
     renderSteps();
+    pullSteps(renderSteps);
   });
 }
 

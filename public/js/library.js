@@ -2,7 +2,7 @@
 import { state, saveKeybinds } from "./store.js";
 import { uploadAudio, deleteAudio, audioUrl } from "./api.js";
 import { renderTrack, removeRow } from "./tracks.js";
-import { playBGM, toggleFX, preloadFx } from "./audio.js";
+import { playBGM, toggleFX, preloadFx, setTrackLevel } from "./audio.js";
 import { showToast } from "./toast.js";
 
 const DROP_ZONES = [
@@ -14,10 +14,11 @@ const UPLOAD_INPUTS = [
   ["bgmUpload", "bgm"],
 ];
 
-function handlersFor(type) {
+function handlersFor(type, url) {
   return {
     onPlay: type === "bgm" ? (source, row) => playBGM(source, row, true) : (source, row) => toggleFX(source, row),
     onRemove: (fileName, t, row) => deleteTrack(fileName, t, row),
+    onLevel: (v) => setTrackLevel(type === "bgm" ? "bgm" : "fx", url, v),
   };
 }
 
@@ -25,7 +26,7 @@ function handlersFor(type) {
 export function addLibraryTrack(name, url, type) {
   state.library[type][name] = url;
   if (type === "effects") preloadFx(url);
-  return renderTrack(name, url, type, handlersFor(type));
+  return renderTrack(name, url, type, handlersFor(type, url));
 }
 
 export async function uploadAudioFile(file, type) {

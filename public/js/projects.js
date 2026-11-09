@@ -1,4 +1,5 @@
 import { initThemeSwitch } from "./theme.js";
+import { showToast } from "./toast.js";
 
 initThemeSwitch();
 
@@ -6,11 +7,21 @@ const projectList = document.getElementById("project-list");
 const newProjectBtn = document.getElementById("newProjectBtn");
 const projectDialog = document.getElementById("projectDialog");
 const projectForm = document.getElementById("projectForm");
+const dialogTitle = document.getElementById("dialogTitle");
 const nameInput = document.getElementById("name");
 const descriptionInput = document.getElementById("description");
 const formError = document.getElementById("form-error");
 const cancelBtn = document.getElementById("cancelBtn");
 const createBtn = document.getElementById("createBtn");
+const confirmDialog = document.getElementById("confirmDialog");
+const confirmText = document.getElementById("confirmText");
+const confirmError = document.getElementById("confirm-error");
+const confirmCancelBtn = document.getElementById("confirmCancelBtn");
+const confirmDeleteBtn = document.getElementById("confirmDeleteBtn");
+
+let editing = null; // { project, row } while renaming, null when creating
+let pendingDelete = null; // { project, row } while the confirm dialog is open
+let returnFocus = null; // the button that opened the open dialog
 
 // textContent only: project names come from users and must never be parsed as HTML.
 function el(tag, className, text) {
@@ -30,7 +41,15 @@ function renderProject(project) {
   const meta = el("span", "project__meta", "Updated " + new Date(project.updatedAt).toLocaleDateString());
   const open = el("a", "btn", "Open");
   open.href = "soundboard.html?project=" + encodeURIComponent(project.id);
-  li.append(info, meta, open);
+  const rename = el("button", "btn btn--sm btn--ghost", "Rename");
+  rename.type = "button";
+  rename.addEventListener("click", () => openRename(project, li, rename));
+  const remove = el("button", "btn btn--sm btn--ghost btn--danger", "Delete");
+  remove.type = "button";
+  remove.addEventListener("click", () => openDelete(project, li, remove));
+  const actions = el("div", "project__actions");
+  actions.append(open, rename, remove);
+  li.append(info, meta, actions);
   return li;
 }
 
@@ -69,25 +88,64 @@ async function loadProjects() {
   }
 }
 
-function showError(msg) {
-  formError.textContent = msg;
-  formError.hidden = !msg;
+function showError(msg, target = formError) {
+  target.textContent = msg;
+  target.hidden = !msg;
+}
+
+// Focus goes back to the button that opened the dialog, or to New project if that row is gone.
+function restoreFocus() {
+  (returnFocus?.isConnected ? returnFocus : newProjectBtn).focus();
 }
 
 // Runs on every close (Cancel, Escape, or success) so a reopened dialog starts clean.
 projectDialog.addEventListener("close", () => {
   projectForm.reset();
   showError("");
+  editing = null;
+  restoreFocus();
+});
+
+confirmDialog.addEventListener("close", () => {
+  showError("", confirmError);
+  pendingDelete = null;
+  restoreFocus();
 });
 
 newProjectBtn.addEventListener("click", () => {
+  editing = null;
+  returnFocus = newProjectBtn;
+  dialogTitle.textContent = "New project";
+  createBtn.textContent = "Create project";
   projectForm.reset();
   showError("");
   projectDialog.showModal();
   nameInput.focus();
 });
 
+function openRename(project, row, trigger) {
+  editing = { project, row };
+  returnFocus = trigger;
+  dialogTitle.textContent = "Rename project";
+  createBtn.textContent = "Save changes";
+  nameInput.value = project.name;
+  descriptionInput.value = project.description || "";
+  showError("");
+  projectDialog.showModal();
+  nameInput.focus();
+}
+
+function openDelete(project, row, trigger) {
+  pendingDelete = { project, row };
+  returnFocus = trigger;
+  confirmText.textContent = `Delete ${project.name}? Its audio files are removed from this computer. This cannot be undone.`;
+  showError("", confirmError);
+  confirmDialog.showModal();
+  confirmCancelBtn.focus();
+}
+
 cancelBtn.addEventListener("click", () => projectDialog.close());
+confirmCancelBtn.addEventListener("click", () => confirmDialog.close());
 
 projectForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -98,27 +156,65 @@ projectForm.addEventListener("submit", async (event) => {
     return;
   }
 
+  const target = editing;
   showError("");
   createBtn.disabled = true;
-  createBtn.textContent = "Creating";
+  createBtn.textContent = target ? "Saving" : "Creating";
   try {
-    const res = await fetch("/projects", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description: descriptionInput.value }),
-    });
-    if (res.ok) {
+    const res = target
+      ? await fetch(`/projects/${encodeURIComponent(target.project.id)}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, description: descriptionInput.value }),
+        })
+      : await fetch("/projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, description: descriptionInput.value }),
+        });
+    if (res.ok && target) {
+      const { project } = await res.json();
+      const row = renderProject(project);
+      target.row.replaceWith(row);
+      returnFocus = row.querySelector("button");
+      projectDialog.close();
+    } else if (res.ok) {
       projectDialog.close();
       await loadProjects();
     } else {
       const body = await res.json().catch(() => ({}));
-      showError(body.error || "Could not create the project.");
+      showError(body.error || (target ? "Could not rename the project." : "Could not create the project."));
     }
   } catch {
     showError("Could not reach the server.");
   } finally {
     createBtn.disabled = false;
-    createBtn.textContent = "Create project";
+    createBtn.textContent = target ? "Save changes" : "Create project";
+  }
+});
+
+confirmDeleteBtn.addEventListener("click", async () => {
+  const target = pendingDelete;
+  if (!target) return;
+  showError("", confirmError);
+  confirmDeleteBtn.disabled = true;
+  confirmDeleteBtn.textContent = "Deleting";
+  try {
+    const res = await fetch(`/projects/${encodeURIComponent(target.project.id)}`, { method: "DELETE" });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      showError(body.error || "Could not delete the project.", confirmError);
+      return;
+    }
+    target.row.remove();
+    confirmDialog.close();
+    if (!projectList.querySelector(".project")) renderEmpty();
+    showToast(`Deleted ${target.project.name}`, "success");
+  } catch {
+    showError("Could not reach the server.", confirmError);
+  } finally {
+    confirmDeleteBtn.disabled = false;
+    confirmDeleteBtn.textContent = "Delete project";
   }
 });
 

@@ -153,6 +153,8 @@ body.has-board { height: 100vh; display: flex; flex-direction: column; overflow:
 .project__name { font: 700 var(--t-lg)/1.2 var(--font-display); letter-spacing: var(--display-tracking); text-transform: var(--display-case); }
 .project__desc { margin-top: var(--s-1); color: var(--c-muted); font-size: var(--t-sm); max-width: 65ch; }
 .project__meta { color: var(--c-muted); font-size: var(--t-sm); text-align: right; }
+.project__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--s-2); }
+@media (max-width: 700px) { .project__actions { justify-content: flex-start; } }
 .empty-state { padding: var(--s-6) var(--s-4); background: var(--c-surface); color: var(--c-muted); text-align: center; }
 .empty-state h2 { color: var(--c-text); font: 700 var(--t-lg)/1.2 var(--font-display); margin-bottom: var(--s-2); }
 

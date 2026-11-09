@@ -1,0 +1,48 @@
+/* Per-track volume slider. 44px hit area, 16px of layout height. */
+.track__level {
+  -webkit-appearance: none;
+  appearance: none;
+  display: block;
+  width: 100%;
+  min-height: var(--hit);
+  margin-block: calc((var(--hit) - 1rem) / -2);
+  background: transparent;
+  cursor: pointer;
+}
+
+.track__level::-webkit-slider-runnable-track {
+  height: 2px;
+  background: var(--c-rule);
+  border-radius: 1px;
+}
+
+.track__level::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -6px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--c-text);
+}
+
+.track__level::-moz-range-track {
+  height: 2px;
+  background: var(--c-rule);
+  border-radius: 1px;
+}
+
+.track__level::-moz-range-progress {
+  height: 2px;
+  background: var(--c-text);
+  border-radius: 1px;
+}
+
+.track__level::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--c-text);
+}

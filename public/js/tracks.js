@@ -3,6 +3,7 @@ import { icon } from "./icons.js";
 import { showToast } from "./toast.js";
 import { state, saveKeybinds } from "./store.js";
 import { formatClock } from "./time-format.js";
+import { loadLevel, saveLevel } from "./levels.js";
 
 const LIST_IDS = { effects: "effects", bgm: "bgms" };
 const FLAGS = { effects: "FX", bgm: "BGM" };
@@ -90,6 +91,17 @@ function buildProgress() {
   return progress;
 }
 
+function buildLevel(fileName) {
+  const level = el("input", "track__level");
+  level.type = "range";
+  level.min = "0";
+  level.max = "1";
+  level.step = "0.05";
+  level.value = String(loadLevel(state.projectId, fileName));
+  level.setAttribute("aria-label", `Volume for ${fileName}`);
+  return level;
+}
+
 function buildRow(fileName, type) {
   const row = el("li", "track");
   row.dataset.filename = fileName;
@@ -112,7 +124,7 @@ function buildRow(fileName, type) {
   const line = el("div", "track__line");
   line.append(name, el("span", "track__state", "Playing"));
   const main = el("div", "track__main");
-  main.append(line);
+  main.append(line, buildLevel(fileName));
   if (type === "bgm") main.append(buildProgress());
 
   row.append(
@@ -144,7 +156,7 @@ function syncEmpty(type) {
 
 // Renders (or re-renders, replacing any row with the same name) one track.
 // onPlay(source, row, btn) and onRemove(fileName, type, row) are supplied by the caller.
-export function renderTrack(fileName, source, type, { onPlay, onRemove } = {}) {
+export function renderTrack(fileName, source, type, { onPlay, onRemove, onLevel } = {}) {
   const list = listFor(type);
   if (!list) return null;
   findRow(type, fileName)?.remove();
@@ -153,6 +165,15 @@ export function renderTrack(fileName, source, type, { onPlay, onRemove } = {}) {
   const play = row.querySelector(".track__play");
   play.addEventListener("click", () => onPlay?.(source, row, play));
   row.querySelector(".track__remove").addEventListener("click", () => onRemove?.(fileName, type, row));
+
+  const level = row.querySelector(".track__level");
+  const initial = Number(level.value); // read back: the range input snaps to its step
+  level.addEventListener("input", () => {
+    const value = Number(level.value);
+    onLevel?.(value);
+    saveLevel(state.projectId, fileName, value);
+  });
+  if (initial !== 1) onLevel?.(initial);
 
   list.appendChild(row);
   syncEmpty(type);

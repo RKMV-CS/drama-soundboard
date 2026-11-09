@@ -55,6 +55,20 @@
   </form>
 </dialog>
 
+<dialog id="confirmDialog" class="dialog" aria-labelledby="confirmTitle">
+  <div class="dialog__body">
+    <h2 id="confirmTitle" class="panel__title">Delete project</h2>
+    <p id="confirmText"></p>
+    <p id="confirm-error" class="form-error" role="alert" hidden></p>
+    <div class="dialog__actions">
+      <button type="button" id="confirmCancelBtn" class="btn btn--ghost">Cancel</button>
+      <button type="button" id="confirmDeleteBtn" class="btn btn--danger">Delete project</button>
+    </div>
+  </div>
+</dialog>
+
+<div id="toast-container" class="toasts" aria-live="polite"></div>
+
 <script type="module" src="js/projects.js"></script>
 </body>
 </html>

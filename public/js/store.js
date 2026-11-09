@@ -62,8 +62,14 @@ export function loadSteps() {
   state.steps = Array.isArray(saved) ? saved : [];
 }
 
+let onStepsChanged = null;
+export function onStepsSaved(fn) {
+  onStepsChanged = fn;
+}
+
 export function saveSteps() {
   writeRaw(KEY_STEPS + projectSuffix(), JSON.stringify(state.steps));
+  onStepsChanged?.();
 }
 
 export function loadVolume() {
