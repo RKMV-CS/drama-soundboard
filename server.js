@@ -13,7 +13,7 @@ const PORT = process.env.PORT || 3000;
 const UPLOADS_DIR = path.join(DATA_DIR, "uploads");
 const app = express();
 
-app.use(express.json());
+app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 const upload = multer({
@@ -71,6 +71,68 @@ app.get(
     res.json({
       project: { ...resolved.record, slug: resolved.slug, ...meta },
     });
+  })
+);
+
+// Validation happens here, before anything reaches db.json or project.json.
+app.patch(
+  "/projects/:id",
+  asyncHandler(async (req, res) => {
+    const { name, description } = req.body || {};
+    const fields = {};
+    if (name !== undefined) {
+      const trimmed = typeof name === "string" ? name.trim() : "";
+      if (!trimmed || trimmed.length > 80) {
+        return res.status(400).json({ error: "name must be 1-80 characters" });
+      }
+      fields.name = trimmed;
+    }
+    if (description !== undefined) {
+      if (typeof description !== "string" || description.trim().length > 500) {
+        return res.status(400).json({ error: "description must be a string of at most 500 characters" });
+      }
+      fields.description = description.trim();
+    }
+    const project = await projects.updateProject(req.params.id, fields);
+    if (!project) return res.status(404).json({ error: "Project not found" });
+    res.json({ project });
+  })
+);
+
+app.delete(
+  "/projects/:id",
+  asyncHandler(async (req, res) => {
+    const deleted = await projects.deleteProject(req.params.id);
+    if (!deleted) return res.status(404).json({ error: "Project not found" });
+    res.json({ ok: true });
+  })
+);
+
+app.get(
+  "/projects/:id/steps",
+  asyncHandler(async (req, res) => {
+    const steps = await projects.getSteps(req.params.id);
+    if (steps === null) return res.status(404).json({ error: "Project not found" });
+    res.json({ steps });
+  })
+);
+
+app.put(
+  "/projects/:id/steps",
+  asyncHandler(async (req, res) => {
+    const steps = (req.body || {}).steps;
+    const valid =
+      Array.isArray(steps) &&
+      steps.length <= 500 &&
+      steps.every(
+        (s) => s && typeof s === "object" && !Array.isArray(s) && typeof s.type === "string" && s.type.length <= 40
+      );
+    if (!valid) {
+      return res.status(400).json({ error: "steps must be an array of up to 500 objects, each with a string type of at most 40 characters" });
+    }
+    const saved = await projects.setSteps(req.params.id, steps);
+    if (saved === null) return res.status(404).json({ error: "Project not found" });
+    res.json({ steps: saved });
   })
 );
 

@@ -57,6 +57,23 @@ function touchProject(id) {
   });
 }
 
+function updateProject(id, fields) {
+  return mutate((db) => {
+    const project = db.projects.find((p) => p.id === id);
+    if (!project) return null;
+    Object.assign(project, fields, { updatedAt: new Date().toISOString() });
+    return project;
+  });
+}
+
+function removeProject(id) {
+  return mutate((db) => {
+    const i = db.projects.findIndex((p) => p.id === id);
+    if (i === -1) return null;
+    return db.projects.splice(i, 1)[0];
+  });
+}
+
 module.exports = {
   readDb,
   writeDb,
@@ -64,4 +81,6 @@ module.exports = {
   findProjectById,
   addProject,
   touchProject,
+  updateProject,
+  removeProject,
 };

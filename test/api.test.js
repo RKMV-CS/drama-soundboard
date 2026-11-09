@@ -137,3 +137,67 @@ test("static server exposes only public/", async () => {
   assert.equal((await fetch(base + "/index.html")).status, 200);
   assert.equal((await fetch(base + "/soundboard.html")).status, 200);
 });
+
+const fs = require("node:fs");
+const path = require("node:path");
+
+test("rename updates the index and project.json and keeps the slug", async () => {
+  const p = await newProject("Rename Me");
+  const res = await json("PATCH", `/projects/${p.id}`, { name: "  New Name  ", description: " d " });
+  assert.equal(res.status, 200);
+  const { project } = await res.json();
+  assert.equal(project.name, "New Name");
+  assert.equal(project.slug, p.slug);
+  const list = await (await fetch(base + "/projects")).json();
+  assert.equal(list.projects.find((x) => x.id === p.id).name, "New Name");
+  const got = await (await fetch(`${base}/projects/${p.id}`)).json();
+  assert.equal(got.project.name, "New Name");
+  assert.equal(got.project.description, "d");
+});
+
+test("rename rejects empty and 81-char names; unknown project is 404", async () => {
+  const p = await newProject("Strict");
+  assert.equal((await json("PATCH", `/projects/${p.id}`, { name: "   " })).status, 400);
+  assert.equal((await json("PATCH", `/projects/${p.id}`, { name: "x".repeat(81) })).status, 400);
+  assert.equal((await json("PATCH", `/projects/nope`, { name: "Ok" })).status, 404);
+});
+
+test("delete removes folder and index entry; later calls are 404", async () => {
+  const p = await newProject("Doomed");
+  const dir = path.join(process.env.DRAMA_DATA_DIR, "projects", p.slug);
+  assert.ok(fs.existsSync(dir));
+  const res = await json("DELETE", `/projects/${p.id}`);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { ok: true });
+  assert.ok(!fs.existsSync(dir));
+  const list = await (await fetch(base + "/projects")).json();
+  assert.ok(!list.projects.some((x) => x.id === p.id));
+  assert.equal((await fetch(`${base}/projects/${p.id}`)).status, 404);
+  assert.equal((await json("DELETE", `/projects/${p.id}`)).status, 404);
+});
+
+test("delete with a traversal id is rejected and removes nothing outside the data dir", async () => {
+  const dataDir = process.env.DRAMA_DATA_DIR;
+  const sentinel = path.join(dataDir, "sentinel.txt");
+  fs.writeFileSync(sentinel, "keep");
+  const res = await json("DELETE", `/projects/${encodeURIComponent("../..")}`);
+  assert.ok([400, 404].includes(res.status));
+  assert.ok(fs.existsSync(sentinel));
+  assert.ok(fs.existsSync(path.join(dataDir, "db.json")));
+  fs.rmSync(sentinel);
+});
+
+test("steps: default empty, round-trip, and validation", async () => {
+  const p = await newProject("Steps");
+  const url = `${base}/projects/${p.id}/steps`;
+  assert.deepEqual(await (await fetch(url)).json(), { steps: [] });
+  const steps = [{ type: "fade", at: 1 }, { type: "duck" }];
+  assert.equal((await json("PUT", `/projects/${p.id}/steps`, { steps })).status, 200);
+  assert.deepEqual((await (await fetch(url)).json()).steps, steps);
+  assert.equal((await json("PUT", `/projects/${p.id}/steps`, { steps: "nope" })).status, 400);
+  assert.equal((await json("PUT", `/projects/${p.id}/steps`, { steps: [{ at: 1 }] })).status, 400);
+  assert.equal((await json("PUT", `/projects/${p.id}/steps`, { steps: [{ type: "x".repeat(41) }] })).status, 400);
+  assert.deepEqual((await (await fetch(url)).json()).steps, steps, "rejected PUT must not overwrite");
+  assert.equal((await fetch(`${base}/projects/nope/steps`)).status, 404);
+  assert.equal((await json("PUT", `/projects/nope/steps`, { steps: [] })).status, 404);
+});

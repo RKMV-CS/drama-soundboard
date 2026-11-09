@@ -1,39 +1,56 @@
 # Drama Soundboard
 
-A soundboard for theatre and drama productions. Load a project with its sound effects and background music, then fire cues from the keyboard or step through a scripted cue list during a live show.
+A local-first soundboard for live theatre and drama sound cues. Load a project with its sound effects (FX) and background music (BGM), fire cues from the keyboard, or step through a scripted cue list with Next during a show.
+
+It runs on your own machine, offline. No cloud service is involved.
 
 ## Features
 
-- Per-project audio library: drag and drop files (mp3, wav, ogg, m4a, aac, flac, webm; up to 50 MB each), or upload a zip archive (up to 200 MB).
-- Two panels: sound effects (FX) and background music (BGM).
-- Per-effect key bindings.
-- Stepwise cue flow: play, pause or fade BGM; play or stop FX; wait; auto-next.
-- Keyboard control: BGM volume `W`/`S`, FX volume `8`/`2`, `Enter` to advance to the next step.
-- BGM ducks automatically under effects.
+- Per-project audio library: drag and drop mp3, wav, ogg, m4a, aac, flac or webm files (up to 50 MB each), or upload a zip archive (up to 200 MB).
+- Two panels, FX and BGM. Effects are decoded ahead of time and fire without lag. BGM ducks under effects, and a Fade in cue on a new track crossfades from the one playing.
+- Cue list: play, pause or fade BGM; play or stop FX; wait; auto-next.
+- Per-track key bindings for effects.
+- Two switchable themes, Tape and Book.
 
 ## Quick start
 
+Requires Node.js 18 or newer.
+
 ```bash
-npm install
+npm ci
 npm start
 ```
 
-Open http://localhost:3000. Create a project from the list page, upload your audio, then open the soundboard.
-
-For development with auto-restart on changes: `npm run dev`.
+Open http://localhost:3000 in a browser. Create a project from the list page, upload your audio, then open the soundboard. For auto-restart during development, run `npm run dev`.
 
 ## Configuration
 
-Set these in a `.env` file in the repo root or in the environment.
+Set as environment variables before starting the server.
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `PORT` | `3000` | HTTP port for the server. |
-| `DRAMA_DATA_DIR` | repo root | Directory where project data is stored. |
+| `PORT` | `3000` | HTTP port. |
+| `DRAMA_DATA_DIR` | repo root | Where project data is stored (see `utils/config.js`). |
 
-## Project data layout
+## Project layout
 
-Everything under the data directory:
+```
+server.js          Express server and API routes
+utils/             backend helpers: config, db, projects, slug, zip
+public/            the whole web UI, served as static files
+  index.html       project list
+  soundboard.html  soundboard for one project
+  css/             tokens, base, components, fonts, app
+  js/              ES modules, no build step
+  fonts/           self-hosted woff2 fonts
+  img/             icon sprite (icons.svg)
+test/              node:test suites
+examples/          Script.txt, an example cue script
+```
+
+## Data layout
+
+Project data lives outside `public/`, under the data directory (the repo root by default):
 
 ```
 db.json                      project index
@@ -46,26 +63,17 @@ uploads/                     temporary upload area
 
 `projects/` and `uploads/` are git-ignored.
 
-## Pages
+## Themes
 
-- `index.html`: list and create projects.
-- `soundboard.html?project=<id>`: the soundboard for one project.
+**Tape** (default) and **Book** are chosen with the Theme switch in the header and remembered in the browser (localStorage key `sb_theme`). Design rules are in `DESIGN.md`; product context is in `PRODUCT.md`.
 
-## API
+## Keyboard
 
-| Method | Route | Purpose |
-|---|---|---|
-| GET | `/health` | Health check. |
-| GET | `/projects` | List projects. |
-| POST | `/projects` | Create a project. |
-| GET | `/projects/:id` | Get a project. |
-| POST | `/projects/:id/open` | Open a project. |
-| POST | `/projects/:id/upload` | Upload a zip archive (field `archive`). |
-| GET | `/projects/:id/audios` | List audio files. |
-| POST | `/projects/:id/audios/upload` | Upload one audio file (field `file`, optional `type`: `bgm` or `effects`). |
-| GET | `/projects/:id/audios/:filename` | Download an audio file. |
-| DELETE | `/projects/:id/audios/:filename` | Delete an audio file. |
-| GET | `/projects/:id/download` | Download the project's uploaded `archive.zip`. |
+- `Enter` advances to the next cue. When a button has focus, Enter is left to that button.
+- `W` / `S` raise and lower BGM volume. `8` / `2` raise and lower FX volume.
+- Each track has a key field: click it and press a key. A key already used by another track moves to the new one. `Backspace` or `Delete` clears it. Space is stored as `Space`.
+- Reserved, not bindable to tracks: `W`, `S`, `2`, `8`, `Enter`.
+- Bindings are saved per project in the browser.
 
 ## Testing
 
@@ -73,11 +81,14 @@ uploads/                     temporary upload area
 npm test
 ```
 
-Runs the `node:test` suites in `test/`.
+Runs the `node:test` suites in `test/`. No browser is needed. CI (`.github/workflows/ci.yml`) runs `npm ci` and `npm test` on Node 18, 20 and 22.
 
-## Status
+## Roadmap
 
-Being turned into a product; an installable app is planned.
+- Per-track volume.
+- Show mode.
+- PWA and desktop launcher.
+- MCP server for script-to-cues, planned as a separate server.
 
 ## License
 

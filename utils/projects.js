@@ -24,6 +24,8 @@ function projectPaths(slug) {
   };
 }
 
+const stepsPath = (slug) => path.join(projectRoot(slug), "steps.json");
+
 async function loadProjectJson(slug) {
   const { metaPath } = projectPaths(slug);
   try {
@@ -232,6 +234,55 @@ async function deleteAudioFile(id, filename) {
   return true;
 }
 
+// Renames only: the slug and folder never change.
+async function updateProject(id, fields) {
+  const resolved = await resolveProject(id);
+  if (!resolved) return null;
+
+  const { slug } = resolved;
+  const meta = await loadProjectJson(slug);
+  Object.assign(meta, fields);
+  await saveProjectJson(slug, meta);
+  const record = await db.updateProject(id, fields);
+  return { ...record, slug, ...meta };
+}
+
+async function deleteProject(id) {
+  const record = await db.findProjectById(id);
+  if (!record) return null;
+
+  const slug = slugFromDbRecord(record);
+  const root = path.resolve(projectRoot(slug));
+  if (!root.startsWith(path.resolve(PROJECTS_ROOT) + path.sep)) {
+    throw new Error("Refusing to delete a folder outside the projects root");
+  }
+  await fs.rm(root, { recursive: true, force: true });
+  await db.removeProject(id);
+  return true;
+}
+
+async function getSteps(id) {
+  const resolved = await resolveProject(id);
+  if (!resolved) return null;
+  try {
+    return JSON.parse(await fs.readFile(stepsPath(resolved.slug), "utf8"));
+  } catch (err) {
+    if (err.code === "ENOENT") return [];
+    throw err;
+  }
+}
+
+// Atomic replace, same tmp-then-rename pattern as db.json.
+async function setSteps(id, steps) {
+  const resolved = await resolveProject(id);
+  if (!resolved) return null;
+  const file = stepsPath(resolved.slug);
+  const tmp = `${file}.${uuidv4()}.tmp`;
+  await fs.writeFile(tmp, JSON.stringify(steps, null, 2), "utf8");
+  await fs.rename(tmp, file);
+  return steps;
+}
+
 module.exports = {
   REPO_ROOT,
   PROJECTS_ROOT,
@@ -242,6 +293,10 @@ module.exports = {
   uploadArchive,
   addAudioFile,
   deleteAudioFile,
+  updateProject,
+  deleteProject,
+  getSteps,
+  setSteps,
   loadProjectJson,
   slugFromDbRecord,
 };

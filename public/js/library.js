@@ -2,7 +2,7 @@
 import { state, saveKeybinds } from "./store.js";
 import { uploadAudio, deleteAudio, audioUrl } from "./api.js";
 import { renderTrack, removeRow } from "./tracks.js";
-import { playBGM, toggleFX } from "./audio.js";
+import { playBGM, toggleFX, preloadFx } from "./audio.js";
 import { showToast } from "./toast.js";
 
 const DROP_ZONES = [
@@ -24,6 +24,7 @@ function handlersFor(type) {
 // Registers a file in the library and renders its row (used for server files and fresh uploads).
 export function addLibraryTrack(name, url, type) {
   state.library[type][name] = url;
+  if (type === "effects") preloadFx(url);
   return renderTrack(name, url, type, handlersFor(type));
 }
 
